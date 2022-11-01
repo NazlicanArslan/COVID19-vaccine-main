@@ -47,46 +47,101 @@ import copy
 # List of names of SimReplication attributes to be serialized as a .json file
 #   for saving a simulation replication or loading a simulation replication
 #   from a timepoint t > 0 (rather than starting over from scratch)
-SimReplication_IO_var_names = ("rng_seed",
-                               "ICU_history", "IH_history",
-                               "ToIHT_history", "ToIY_history",
-                               "next_t",
-                               "S", "E", "IA", "IY", "PA", "PY", "R", "D",
-                               "IH", "ICU", "IYIH", "IYICU", "IHICU",
-                               "ToICU", "ToIHT", "ToICUD", "ToIYD", "ToIA", "ToIY")
+SimReplication_IO_var_names = (
+    "rng_seed",
+    "ICU_history",
+    "IH_history",
+    "ToIHT_history",
+    "ToIY_history",
+    "next_t",
+    "S",
+    "E",
+    "IA",
+    "IY",
+    "PA",
+    "PY",
+    "R",
+    "D",
+    "IH",
+    "ICU",
+    "IYIH",
+    "IYICU",
+    "IHICU",
+    "ToICU",
+    "ToIHT",
+    "ToICUD",
+    "ToIYD",
+    "ToIA",
+    "ToIY",
+)
 
 # List of names of SimReplication attributes that are lists of arrays
-SimReplication_IO_list_of_arrays_var_names = ("ICU_history", "IH_history",
-                                              "ToIHT_history", "ToIY_history",
-                                              "D_history", "ToICUD_history", "ToIYD_history")
+SimReplication_IO_list_of_arrays_var_names = (
+    "ICU_history",
+    "IH_history",
+    "ToIHT_history",
+    "ToIY_history",
+    "D_history",
+    "ToICUD_history",
+    "ToIYD_history",
+)
 
 # List of names of SimReplication attributes that are arrays
-SimReplication_IO_arrays_var_names = ("S", "E", "IA", "IY", "PA", "PY", "R", "D",
-                                      "IH", "ICU", "IYIH", "IYICU", "IHICU",
-                                      "ToICU", "ToIHT", "ToICUD",
-                                      "ToIYD", "ToIA", "ToIY")
+SimReplication_IO_arrays_var_names = (
+    "S",
+    "E",
+    "IA",
+    "IY",
+    "PA",
+    "PY",
+    "R",
+    "D",
+    "IH",
+    "ICU",
+    "IYIH",
+    "IYICU",
+    "IHICU",
+    "ToICU",
+    "ToIHT",
+    "ToICUD",
+    "ToIYD",
+    "ToIA",
+    "ToIY",
+)
 
 # List of names of VaccineGroup attributes to be serialized as a .json file
-VaccineGroup_IO_var_names = ("v_beta_reduct", "v_tau_reduct", "v_beta_reduct_delta",
-                             "v_tau_reduct_delta", "v_tau_reduct_omicron") \
-                            + SimReplication_IO_arrays_var_names
+VaccineGroup_IO_var_names = (
+    "v_beta_reduct",
+    "v_tau_reduct",
+    "v_beta_reduct_delta",
+    "v_tau_reduct_delta",
+    "v_tau_reduct_omicron",
+) + SimReplication_IO_arrays_var_names
 
 # List of names of VaccineGroup attributes that are arrays
 VaccineGroup_IO_arrays_var_names = SimReplication_IO_arrays_var_names
 
 # List of names of MultiTierPolicy attributes to be serialized as a .json file
-MultiTierPolicy_IO_var_names = ("community_transmission",
-                                "lockdown_thresholds",
-                                "tier_history")
+MultiTierPolicy_IO_var_names = (
+    "community_transmission",
+    "lockdown_thresholds",
+    "tier_history",
+)
 
 ###############################################################################
 
-def import_rep_from_json(sim_rep, sim_rep_filename,
-                         vaccine_group_v0_filename, vaccine_group_v1_filename,
-                         vaccine_group_v2_filename, vaccine_group_v3_filename,
-                         multi_tier_policy_filename=None,
-                         random_params_filename=None):
-    '''
+
+def import_rep_from_json(
+    sim_rep,
+    sim_rep_filename,
+    vaccine_group_v0_filename,
+    vaccine_group_v1_filename,
+    vaccine_group_v2_filename,
+    vaccine_group_v3_filename,
+    multi_tier_policy_filename=None,
+    random_params_filename=None,
+):
+    """
     Modifies a SimReplication object sim_rep in place to match the
         last state of a previously run simulation replication
     Updates sim_rep attributes according to the data in sim_rep_filename
@@ -120,20 +175,26 @@ def import_rep_from_json(sim_rep, sim_rep_filename,
         i.e. parameters that are randomly sampled at the beginning
         of the replication
     :return: [None]
-    '''
+    """
 
     # Update sim_rep variables
     d = json.load(open(sim_rep_filename))
     load_vars_from_dict(sim_rep, d, sim_rep.state_vars + sim_rep.tracking_vars)
 
     # Update vaccine group variables
-    vaccine_group_filenames = [vaccine_group_v0_filename, vaccine_group_v1_filename,
-                               vaccine_group_v2_filename, vaccine_group_v3_filename]
+    vaccine_group_filenames = [
+        vaccine_group_v0_filename,
+        vaccine_group_v1_filename,
+        vaccine_group_v2_filename,
+        vaccine_group_v3_filename,
+    ]
 
     for i in range(len(vaccine_group_filenames)):
         vaccine_group = sim_rep.vaccine_groups[i]
         d = json.load(open(vaccine_group_filenames[i]))
-        load_vars_from_dict(vaccine_group, d, sim_rep.state_vars + sim_rep.tracking_vars)
+        load_vars_from_dict(
+            vaccine_group, d, sim_rep.state_vars + sim_rep.tracking_vars
+        )
 
         # Modify the first step of the next day so that the
         #   discretization (with steps) of the next day is correct
@@ -164,8 +225,9 @@ def import_rep_from_json(sim_rep, sim_rep_filename,
         epi_rand.setup_base_params()
         sim_rep.epi_rand = epi_rand
 
+
 def load_vars_from_dict(simulation_object, loaded_dict, keys_to_convert_to_array=[]):
-    '''
+    """
     Helper function to assign attribute values to simulation_object according to
         loaded_dict. Modification occurs in-place.
     :param simulation_object: instance of SimulationRep, MultiTierPolicy, VaccineGroup,
@@ -179,18 +241,25 @@ def load_vars_from_dict(simulation_object, loaded_dict, keys_to_convert_to_array
         (subset of loaded_dict.keys()) with values to convert from lists to arrays
         when assigned to simulation_object.
     :return: [None]
-    '''
+    """
     for k in loaded_dict.keys():
         if k in keys_to_convert_to_array and isinstance(loaded_dict[k], list):
             setattr(simulation_object, k, np.array(loaded_dict[k]))
         else:
             setattr(simulation_object, k, loaded_dict[k])
 
-def export_rep_to_json(sim_rep, sim_rep_filename,
-                       vaccine_group_v0_filename, vaccine_group_v1_filename,
-                       vaccine_group_v2_filename, vaccine_group_v3_filename,
-                       multi_tier_policy_filename=None, random_params_filename=None):
-    '''
+
+def export_rep_to_json(
+    sim_rep,
+    sim_rep_filename,
+    vaccine_group_v0_filename,
+    vaccine_group_v1_filename,
+    vaccine_group_v2_filename,
+    vaccine_group_v3_filename,
+    multi_tier_policy_filename=None,
+    random_params_filename=None,
+):
+    """
     Does not modify any simulation objects. Exports key sim_rep attributes,
         key attributes of each vaccine group in sim_rep.vaccine_groups,
         key sim_rep.policy attributes (optional), and key sim_rep.epi_rand attributes
@@ -217,7 +286,7 @@ def export_rep_to_json(sim_rep, sim_rep_filename,
         i.e. parameters that are randomly sampled at the beginning
         of the replication
     :return: [None]
-    '''
+    """
 
     # Export sim_rep variables
     # Numpy arrays must be converted to lists to be serializable
@@ -233,10 +302,12 @@ def export_rep_to_json(sim_rep, sim_rep_filename,
     json.dump(d, open(sim_rep_filename, "w"))
 
     # Export vaccine group variables
-    vaccine_group_filenames = [vaccine_group_v0_filename,
-                               vaccine_group_v1_filename,
-                               vaccine_group_v2_filename,
-                               vaccine_group_v3_filename]
+    vaccine_group_filenames = [
+        vaccine_group_v0_filename,
+        vaccine_group_v1_filename,
+        vaccine_group_v2_filename,
+        vaccine_group_v3_filename,
+    ]
 
     for i in range(len(vaccine_group_filenames)):
         vaccine_group = sim_rep.vaccine_groups[i]
