@@ -130,14 +130,14 @@ def get_sample_paths(city,
             num_good_reps += 1
             all_rsq.append(rsq)
             identifier = str(processor_rank) + "_" + str(num_good_reps)
-            InputOutputTools.export_rep_to_json(rep,
-                                                identifier + "_sim.json",
-                                                identifier + "_v0.json",
-                                                identifier + "_v1.json",
-                                                identifier + "_v2.json",
-                                                identifier + "_v3.json",
-                                                None,
-                                                identifier + "_epi_params.json")
+            export_rep_to_json(rep,
+                                identifier + "_sim.json",
+                                identifier + "_v0.json",
+                                identifier + "_v1.json",
+                                identifier + "_v2.json",
+                                identifier + "_v3.json",
+                                None,
+                                identifier + "_epi_params.json")
 
         # Internally save the state of the random number generator
         #   to hand to the next sample path

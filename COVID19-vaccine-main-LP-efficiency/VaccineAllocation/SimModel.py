@@ -10,6 +10,8 @@
 import numpy as np
 from SimObjects import VaccineGroup
 import copy
+import datetime as dt
+datetime_formater = '%Y-%m-%d %H:%M:%S'
 import time
 
 ###############################################################################
@@ -52,8 +54,11 @@ class SimReplication:
         # Initialize data structures to track ICU, IH, ToIHT, ToIY
         self.ICU_history = [np.zeros((A, L))]
         self.IH_history = [np.zeros((A, L))]
+        self.D_history = [np.zeros((A, L))]
         self.ToIHT_history = []
         self.ToIY_history = []
+        self.ToICUD_history = []
+        self.ToIYD_history = []
 
         # The next t that is simulated (automatically gets updated after simulation)
         # This instance has simulated up to but not including time next_t
@@ -290,9 +295,12 @@ class SimReplication:
 
             self.ICU_history.append(self.ICU)
             self.IH_history.append(self.IH)
-
+            self.D_history.append(self.D)
+            
             self.ToIHT_history.append(self.ToIHT)
             self.ToIY_history.append(self.ToIY)
+            self.ToICUD_history.append(self.ToICUD)
+            self.ToIYD_history.append(self.ToIYD)
 
             total_imbalance = np.sum(
                 self.S + self.E + self.IA + self.IY + self.R + self.D + self.PA + self.PY + self.IH + self.ICU) - np.sum(
@@ -350,8 +358,10 @@ class SimReplication:
                 epi.variant_update_param(self.instance.variant_prev[days_since_variant_start])
 
         if self.instance.otherInfo == {}:
-            if t > kwargs["rd_start"] and t <= kwargs["rd_end"]:
-                epi.update_icu_params(kwargs["rd_rate"])
+            rd_start = dt.datetime.strptime(self.instance.config["rd_start"],datetime_formater)
+            rd_end = dt.datetime.strptime(self.instance.config["rd_end"],datetime_formater)
+            if t > self.instance.cal.calendar.index(rd_start) and t <= self.instance.cal.calendar.index(rd_end):
+                epi.update_icu_params(self.instance.config["rd_rate"])
         else:
             epi.update_icu_all(t, self.instance.otherInfo)
 

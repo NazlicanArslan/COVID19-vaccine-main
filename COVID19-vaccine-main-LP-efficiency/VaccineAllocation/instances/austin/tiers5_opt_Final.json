@@ -1,6 +1,6 @@
 {
 "type": "constant",
-"community_transmission": null,
+"community_tranmission": null,
 "tiers": [
     {
          "name": "Stage 1",
@@ -50,7 +50,7 @@
         "min_enforcing_time": 14,
         "daily_cost": 10000,
         "color": "red",
-        "candidate_thresholds": [50, 60]
+        "candidate_thresholds": [50]
     }
     ]
 }

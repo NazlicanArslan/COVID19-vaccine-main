@@ -4,7 +4,7 @@
     "safety_threshold_frac": 0.6,
     "step_size": 9,
     "chance_constraint_epsilon": 0.05,
-    "city": "austin",
+    "city": "cook",
     "infeasible_field": "ICU",
     "rd_start": "2020-05-20 00:00:00",
     "rd_end": "2020-07-26 00:00:00",

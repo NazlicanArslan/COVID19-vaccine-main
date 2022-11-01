@@ -40,11 +40,15 @@
 # OptTools contains utility functions for optimization purposes.
 
 import copy
+
 from SimObjects import MultiTierPolicy
 from DataObjects import City, TierInfo, Vaccine
+from ParamFittingTools import run_fit, save_output
 from SimModel import SimReplication
-import InputOutputTools
+from InputOutputTools import export_rep_to_json
 import OptTools
+from Plotting import plot_from_file
+import datetime as dt
 
 # Import other Python packages
 import numpy as np
@@ -69,6 +73,10 @@ austin = City("austin",
               "setup_data_Final.json",
               "transmission.csv",
               "austin_real_hosp_updated.csv",
+              "austin_real_icu_updated.csv",
+              "austin_hosp_ad_updated.csv",
+              "austin_real_death_from_hosp_updated.csv",
+              "austin_real_total_death.csv",
               "delta_prevalence.csv",
               "omicron_prevalence.csv",
               "variant_prevalence.csv")
@@ -112,8 +120,8 @@ thresholds = (-1, 100, 200, 500, 1000)
 mtp = MultiTierPolicy(austin, tiers, thresholds, "green")
 
 # Create an instance of SimReplication with seed 500.
-rep = SimReplication(austin, vaccines, mtp, 500)
-
+# rep = SimReplication(austin, vaccines, mtp, 500)
+rep = SimReplication(austin, vaccines, None, None)
 # Note that specifying a seed of -1 creates a simulation replication
 #   with average values for the "random" epidemiological parameter
 #   values and deterministic binomial transitions
@@ -131,9 +139,14 @@ rep.simulate_time_period(945)
 #   timeframe of the historical time period, the R-squared is
 #   computed for this subset of days.
 print(rep.compute_rsq())
+# 
+# After simulating, we expert it to json file
 
+export_rep_to_json(rep, austin.path_to_data / "output.json", austin.path_to_data / "v0.json", austin.path_to_data / "v1.json", austin.path_to_data /"v2.json", austin.path_to_data / "v3.json")
+
+plot_from_file(austin.path_to_data / "output.json", austin)
 # After simulating, we can query the cost of the specified policy.
-print(rep.compute_cost())
+# print(rep.compute_cost())
 
 # We can also query whether the specified policy is
 #   feasible, i.e. whether it prevents an ICU capacity violation.
@@ -141,10 +154,10 @@ print(rep.compute_feasibility())
 
 # If we want to test the same policy on a different sample path,
 #   we can still use the same policy object as long as we clear it.
-mtp.reset()
+# mtp.reset()
 
 # Now we create an instance of SimReplication with seed 1010.
-rep = SimReplication(austin, vaccines, mtp, 1010)
+# rep = SimReplication(austin, vaccines, mtp, 1010)
 
 # Compare the R-squared and costs of seed 1010 versus seed 500.
 # Note that so far we are not simulating our policy on
@@ -179,7 +192,27 @@ print(rep.policy.tier_history)
 #   reset(), so simulating rep will draw random numbers
 #   from where the random number generator last left off
 #   (before the reset).
-rep.reset()
+# rep.reset()
+
+
+###############################################################################
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example B: Parameter fitting
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+change_dates = [dt.date(2020, 2, 15),
+                        dt.date(2020, 3, 24),
+                        dt.date(2020, 4, 12),
+                        dt.date(2020, 6, 13),
+                       ]  
+param1 = 7.3*(1 - 0.10896) + 9.9*0.10896
+param2 = (7.3*(1 - 0.10896) + 9.9*0.10896) * 5
+initial_guess = np.array([0.6, 0.15, 3.5, 0.002, 0.425, 0.57, 0.68, 0.55])
+x_bound = ([0, 0, 0, 0, 0, 0, 0, 0],
+                                     [1, 1, 10, 1, 1, 1, 1, 1])
+
+
+# transmission = run_fit(austin, vaccines, change_dates,x_bound, initial_guess, 1.5, param1 , param2, param2, dt.datetime(2020, 4, 20), dt.datetime(2022, 4, 4))
 
 # Due to the nuances of the random number generation,
 #   in many cases it is more straightforward and less

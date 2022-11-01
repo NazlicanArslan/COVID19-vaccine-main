@@ -116,6 +116,10 @@ class City:
                  setup_filename,
                  transmission_filename,
                  hospitalization_filename,
+                 hosp_icu_filename,
+                 hosp_admission_filename,
+                 death_from_hosp_filename,
+                 death_total_filename,
                  delta_prevalence_filename,
                  omicron_prevalence_filename,
                  variant_prevalence_filename):
@@ -124,10 +128,15 @@ class City:
 
         with open(str(self.path_to_data / config_filename), 'r') as input_file:
             self.config = json.load(input_file)
-
+        
+        self.epi_rand = None
         self.load_data(setup_filename,
                        calendar_filename,
                        hospitalization_filename,
+                       hosp_icu_filename,
+                       hosp_admission_filename,
+                       death_from_hosp_filename,
+                       death_total_filename,
                        delta_prevalence_filename,
                        omicron_prevalence_filename,
                        variant_prevalence_filename)
@@ -136,6 +145,10 @@ class City:
     def load_data(self, setup_filename,
                   calendar_filename,
                   hospitalization_filename,
+                  hosp_icu_filename,
+                  hosp_admission_filename,
+                  death_from_hosp_filename,
+                  death_total_filename,
                   delta_prevalence_filename,
                   omicron_prevalence_filename,
                   variant_prevalence_filename):
@@ -157,7 +170,7 @@ class City:
             # Load simulation dates
             self.start_date = dt.datetime.strptime(data['start_date'], datetime_formater)
             self.end_date = dt.datetime.strptime(data['end_date'], datetime_formater)
-            self.last_date_interventions = dt.datetime.strptime(data['last_date_interventions'], datetime_formater)
+            # self.last_date_interventions = dt.datetime.strptime(data['last_date_interventions'], datetime_formater)
             self.school_closure_period = []
             for blSc in range(len(data['school_closure'])):
                 self.school_closure_period.append([
@@ -172,19 +185,16 @@ class City:
         self.weekday_holidays = list(cal_df['Date'][cal_df['Calendar'] == 3])
         self.weekday_longholidays = list(cal_df['Date'][cal_df['Calendar'] == 4])
 
-        df_hosp = pd.read_csv(
-            str(self.path_to_data / hospitalization_filename),
-            parse_dates=['date'],
-            date_parser=pd.to_datetime,
-        )
-        # if hospitalization data starts before self.start_date
-        if df_hosp['date'][0] <= self.start_date:
-            df_hosp = df_hosp[df_hosp['date'] >= self.start_date]
-            df_hosp = df_hosp[df_hosp['date'] <= self.end_date]
-            self.real_hosp = list(df_hosp['hospitalized'])
-        else:
-            df_hosp = df_hosp[df_hosp['date'] <= self.end_date]
-            self.real_hosp = [0] * (df_hosp['date'][0] - self.start_date).days + list(df_hosp['hospitalized'])
+        self.real_hosp = self.read_hosp_related_data(hospitalization_filename) if hospitalization_filename is not None else None 
+        
+        self.real_hosp_icu = self.read_hosp_related_data(hosp_icu_filename) if hosp_icu_filename is not None else None
+
+        self.real_hosp_ad = self.read_hosp_related_data(hosp_admission_filename) if hosp_admission_filename is not None else None
+
+        self.real_death_hosp = self.read_hosp_related_data(death_from_hosp_filename) if death_from_hosp_filename is not None else None
+        
+        self.real_death_total = self.read_hosp_related_data(death_total_filename) if death_total_filename is not None else None
+       
 
         df_delta = pd.read_csv(
             str(self.path_to_data / delta_prevalence_filename),
@@ -209,11 +219,27 @@ class City:
         )
         self.variant_prev = list(df_variant['prev'])
         self.variant_start = df_variant['date'][0]
+    
+    def read_hosp_related_data(self, hosp_filename):
+        df_hosp = pd.read_csv(
+            str(self.path_to_data / hosp_filename),
+            parse_dates=['date'],
+            date_parser=pd.to_datetime,
+        )
+        # if hospitalization data starts before self.start_date
+        if df_hosp['date'][0] <= self.start_date:
+            df_hosp = df_hosp[df_hosp['date'] >= self.start_date]
+            df_hosp = df_hosp[df_hosp['date'] <= self.end_date]
+            df_hosp = list(df_hosp['hospitalized'])
+        else:
+            df_hosp = df_hosp[df_hosp['date'] <= self.end_date]
+            df_hosp = [0] * (df_hosp['date'][0] - self.start_date).days + list(df_hosp['hospitalized'])
+        return df_hosp
 
     def process_data(self, transmission_filename):
         '''
             Compute couple parameters (i.e., parameters that depend on the input)
-            and build th simulation calendar.
+            and build the simulation calendar.
         '''
 
         # Dimension variables
@@ -437,6 +463,7 @@ class Vaccine:
         self.vaccine_proportion = [amount for amount in vaccine_allocation_data['vaccine_amount']]
 
         self.vaccine_start_time = np.where(np.array(instance.cal.calendar) == self.actual_vaccine_time[0])[0]
+        print(self.vaccine_start_time)
 
         v_first_allocation = []
         v_second_allocation = []

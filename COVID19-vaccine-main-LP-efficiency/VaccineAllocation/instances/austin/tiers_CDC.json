@@ -1,7 +1,7 @@
 {
 "type": "CDC",
 "case_threshold": 200,
-"community_transmission": null,
+"community_tranmission": null,
 "tiers": [
     {
         "name": "Stage 1",
