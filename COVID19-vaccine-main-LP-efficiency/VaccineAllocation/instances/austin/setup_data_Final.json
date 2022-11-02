@@ -179,10 +179,10 @@
         ]
       ]
     ],
-    "_mu": [
+    "_etaICU": [
       [
         "rnd_inverse",
-        "mu",
+        "etaICU",
         "choice",
         3.863028,
         [
@@ -193,7 +193,7 @@
       ],
       [
         "rnd_inverse",
-        "mu",
+        "etaICU",
         "choice",
         3.863028,
         [
@@ -204,7 +204,7 @@
       ],
       [
         "rnd_inverse",
-        "mu",
+        "etaICU",
         "choice",
         3.863028,
         [
@@ -215,7 +215,7 @@
       ],
       [
         "rnd_inverse",
-        "mu",
+        "etaICU",
         "choice",
         3.622075,
         [
@@ -226,7 +226,7 @@
       ],
       [
         "rnd_inverse",
-        "mu",
+        "etaICU",
         "choice",
         3.507737,
         [
@@ -359,7 +359,7 @@
       [0.30852592]
     ],
     "omega_IY": 1,
-    "rIH": 0.82788222,
+    "pIH": 0.82788222,
     "YHR": [
       [
         4.02053589e-04,

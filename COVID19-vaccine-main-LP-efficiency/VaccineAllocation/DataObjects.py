@@ -771,7 +771,7 @@ class EpiSetup:
         self.beta = self.beta0  # Unmitigated transmission rate
         self.YFR = self.IFR / self.tau  # symptomatic fatality ratio (%)
         # ^ Arslan et al. (2021) says denominator should be (1 - self.tau)????
-        self.rIH0 = self.rIH
+        self.pIH0 = self.pIH
         self.YHR0 = self.YHR  # % of symptomatic infections that go to hospital
         self.YHR_overall0 = self.YHR_overall
 
@@ -788,8 +788,8 @@ class EpiSetup:
             self.gamma_IH = self.gamma_IH.reshape(self.gamma_IH.size, 1)
             self.gamma_IH0 = self.gamma_IH.copy()
         if isinstance(self.mu, np.ndarray):
-            self.mu = self.mu.reshape(self.mu.size, 1)
-            self.mu0 = self.mu.copy()
+            self.etaICU = self.etaICU.reshape(self.etaICU.size, 1)
+            self.etaICU0 = self.etaICU.copy()
 
         self.update_YHR_params()
         self.update_nu_params()
@@ -896,30 +896,30 @@ class EpiSetup:
         self.nu = (
                 self.gamma_IH
                 * self.HICUR
-                / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                / (self.etaICU + (self.gamma_IH - self.etaICU) * self.HICUR)
         )
-        self.rIH = 1 - (1 - self.rIH) * rdrate
+        self.pIH = 1 - (1 - self.pIH) * rdrate
 
     def update_icu_all(self, t, otherInfo):
-        if "rIH" in otherInfo.keys():
-            if t in otherInfo["rIH"].keys():
-                self.rIH = otherInfo["rIH"][t]
+        if "pIH" in otherInfo.keys():
+            if t in otherInfo["pIH"].keys():
+                self.pIH = otherInfo["pIH"][t]
             else:
-                self.rIH = self.rIH0
+                self.pIH = self.pIH0
         if "HICUR" in otherInfo.keys():
             if t in otherInfo["HICUR"].keys():
                 self.HICUR = otherInfo["HICUR"][t]
             else:
                 self.HICUR = self.HICUR0
-        if "mu" in otherInfo.keys():
-            if t in otherInfo["mu"].keys():
-                self.mu = self.mu0.copy() / otherInfo["mu"][t]
+        if "etaICU" in otherInfo.keys():
+            if t in otherInfo["etaICU"].keys():
+                self.etaICU = self.etaICU0.copy() / otherInfo["etaICU"][t]
             else:
-                self.mu = self.mu0.copy()
+                self.etaICU = self.etaICU0.copy()
         self.nu = (
                 self.gamma_IH
                 * self.HICUR
-                / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                / (self.etaICU + (self.gamma_IH - self.etaICU) * self.HICUR)
         )
 
     def update_YHR_params(self):
@@ -965,7 +965,7 @@ class EpiSetup:
             self.nu = (
                     self.gamma_IH
                     * self.HICUR
-                    / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                    / (self.etaICU + (self.gamma_IH - self.etaICU) * self.HICUR)
             )
             if isinstance(self.gamma_ICU, np.ndarray):
                 self.gamma_ICU = self.gamma_ICU.reshape(self.gamma_ICU.size, 1)
@@ -982,7 +982,7 @@ class EpiSetup:
             self.nu = (
                     self.gamma_IH
                     * self.HFR
-                    / (self.mu + (self.gamma_IH - self.mu) * self.HFR)
+                    / (self.etaICU + (self.gamma_IH - self.etaICU) * self.HFR)
             )
 
     def effective_phi(self, school, cocooning, social_distance, demographics, day_type):
