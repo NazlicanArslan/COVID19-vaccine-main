@@ -15,6 +15,7 @@ import datetime as dt
 datetime_formater = "%Y-%m-%d %H:%M:%S"
 import time
 
+
 ###############################################################################
 
 
@@ -40,7 +41,7 @@ class SimReplication:
 
         # A is the number of age groups
         # L is the number of risk groups
-        # Many data arrays in the simulation have dimenison A x L
+        # Many data arrays in the simulation have dimension A x L
         A = self.instance.A
         L = self.instance.L
 
@@ -228,8 +229,8 @@ class SimReplication:
 
         # Check whether ICU capacity has been violated
         if np.any(
-            np.array(self.ICU_history).sum(axis=(1, 2))[self.t_historical_data_end :]
-            > self.instance.icu
+                np.array(self.ICU_history).sum(axis=(1, 2))[self.t_historical_data_end:]
+                > self.instance.icu
         ):
             return False
         else:
@@ -343,7 +344,7 @@ class SimReplication:
             ) - np.sum(self.instance.N)
 
             assert (
-                np.abs(total_imbalance) < 1e-2
+                    np.abs(total_imbalance) < 1e-2
             ), f"fPop unbalanced {total_imbalance} at time {self.instance.cal.calendar[t]}, {t}"
 
     def simulate_t(self, t_date):
@@ -403,7 +404,7 @@ class SimReplication:
                 )
 
         # Assume an imaginary new variant in May, 2022:
-        if epi.new_variant == True:
+        if epi.new_variant:
             days_since_variant_start = (calendar[t] - self.instance.variant_start).days
             if calendar[t] >= self.instance.variant_start:
                 epi.variant_update_param(
@@ -417,9 +418,9 @@ class SimReplication:
             rd_end = dt.datetime.strptime(
                 self.instance.config["rd_end"], datetime_formater
             )
-            if t > self.instance.cal.calendar.index(
-                rd_start
-            ) and t <= self.instance.cal.calendar.index(rd_end):
+            if self.instance.cal.calendar.index(
+                    rd_start
+            ) < t <= self.instance.cal.calendar.index(rd_end):
                 epi.update_icu_params(self.instance.config["rd_rate"])
         else:
             epi.update_icu_all(t, self.instance.otherInfo)
@@ -428,8 +429,6 @@ class SimReplication:
         # print(epi.rIH)
 
         # print(epi.YHR)
-
-        breakpoint()
 
         discrete_approx = self.discrete_approx
         step_size = self.step_size
@@ -500,10 +499,10 @@ class SimReplication:
                 for v_groups_temp in self.vaccine_groups:
                     # Vectorized version for efficiency. For-loop version commented below
                     temp1 = (
-                        np.matmul(np.diag(epi.omega_PY), v_groups_temp._PY[_t, :, :])
-                        + np.matmul(np.diag(epi.omega_PA), v_groups_temp._PA[_t, :, :])
-                        + epi.omega_IA * v_groups_temp._IA[_t, :, :]
-                        + epi.omega_IY * v_groups_temp._IY[_t, :, :]
+                            np.matmul(np.diag(epi.omega_PY), v_groups_temp._PY[_t, :, :])
+                            + np.matmul(np.diag(epi.omega_PA), v_groups_temp._PA[_t, :, :])
+                            + epi.omega_IA * v_groups_temp._IA[_t, :, :]
+                            + epi.omega_IY * v_groups_temp._IY[_t, :, :]
                     )
 
                     temp2 = np.sum(N, axis=1)[np.newaxis].T
@@ -515,7 +514,7 @@ class SimReplication:
                     dSprob_sum = dSprob_sum + dSprob
 
                 if (
-                    t >= 711 and v_groups.v_name == "v_2"
+                        t >= 711 and v_groups.v_name == "v_2"
                 ):  # date corresponding to 02/07/2022
                     _dS = get_binomial_transition_quantity(
                         v_groups._S[_t],
@@ -523,9 +522,9 @@ class SimReplication:
                     )
                     # Dynamics for E
                     _dSE = (
-                        _dS
-                        * ((1 - v_groups.v_beta_reduct) * dSprob_sum)
-                        / (rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum)
+                            _dS
+                            * ((1 - v_groups.v_beta_reduct) * dSprob_sum)
+                            / (rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum)
                     )
 
                     E_out = get_binomial_transition_quantity(v_groups._E[_t], rate_E)
@@ -533,7 +532,7 @@ class SimReplication:
 
                     _dSR = _dS - _dSE
                     self.vaccine_groups[3]._S[_t + 1] = (
-                        self.vaccine_groups[3]._S[_t + 1] + _dSR
+                            self.vaccine_groups[3]._S[_t + 1] + _dSR
                     )
 
                 else:
@@ -549,7 +548,7 @@ class SimReplication:
                         v_groups._R[_t], rate_immune
                     )
                     self.vaccine_groups[3]._S[_t + 1] = (
-                        self.vaccine_groups[3]._S[_t + 1] + immune_escape_R
+                            self.vaccine_groups[3]._S[_t + 1] + immune_escape_R
                     )
 
                 v_groups._S[_t + 1] = v_groups._S[_t + 1] + v_groups._S[_t] - _dS
@@ -580,12 +579,12 @@ class SimReplication:
                     v_groups._IY[_t] - IYR - IYD - v_groups._IYIH[_t], rate_IYICU
                 )
                 v_groups._IY[_t + 1] = (
-                    v_groups._IY[_t]
-                    + PYIY
-                    - IYR
-                    - IYD
-                    - v_groups._IYIH[_t]
-                    - v_groups._IYICU[_t]
+                        v_groups._IY[_t]
+                        + PYIY
+                        - IYR
+                        - IYD
+                        - v_groups._IYIH[_t]
+                        - v_groups._IYICU[_t]
                 )
 
                 # Dynamics for IH
@@ -594,7 +593,7 @@ class SimReplication:
                     v_groups._IH[_t] - IHR, rate_IHICU
                 )
                 v_groups._IH[_t + 1] = (
-                    v_groups._IH[_t] + v_groups._IYIH[_t] - IHR - v_groups._IHICU[_t]
+                        v_groups._IH[_t] + v_groups._IYIH[_t] - IHR - v_groups._IHICU[_t]
                 )
 
                 # Dynamics for ICU
@@ -603,11 +602,11 @@ class SimReplication:
                     v_groups._ICU[_t] - ICUR, rate_ICUD
                 )
                 v_groups._ICU[_t + 1] = (
-                    v_groups._ICU[_t]
-                    + v_groups._IHICU[_t]
-                    - ICUD
-                    - ICUR
-                    + v_groups._IYICU[_t]
+                        v_groups._ICU[_t]
+                        + v_groups._IHICU[_t]
+                        - ICUD
+                        - ICUR
+                        + v_groups._IYICU[_t]
                 )
                 v_groups._ToICU[_t] = v_groups._IYICU[_t] + v_groups._IHICU[_t]
                 v_groups._ToIHT[_t] = v_groups._IYICU[_t] + v_groups._IYIH[_t]
@@ -615,7 +614,7 @@ class SimReplication:
                 # Dynamics for R
                 if t >= 711 and v_groups.v_name != "v_3":
                     v_groups._R[_t + 1] = (
-                        v_groups._R[_t] + IHR + IYR + IAR + ICUR - immune_escape_R
+                            v_groups._R[_t] + IHR + IYR + IAR + ICUR - immune_escape_R
                     )
                 else:
                     v_groups._R[_t + 1] = v_groups._R[_t] + IHR + IYR + IAR + ICUR
@@ -706,8 +705,8 @@ class SimReplication:
 
                     for v_g in self.vaccine_groups:
                         if (
-                            v_g.v_name
-                            == self.vaccine.vaccine_allocation[vaccine_type][0]["from"]
+                                v_g.v_name
+                                == self.vaccine.vaccine_allocation[vaccine_type][0]["from"]
                         ):
                             v_temp = v_g
 
@@ -723,7 +722,7 @@ class SimReplication:
 
                         if calendar[t] >= self.instance.omicron_start:
                             if (
-                                v_groups.v_name == "v_3" and v_temp.v_name == "v_2"
+                                    v_groups.v_name == "v_3" and v_temp.v_name == "v_2"
                             ) or (v_groups.v_name == "v_2" and v_temp.v_name == "v_1"):
                                 S_in = epi.immune_escape_rate * np.reshape(
                                     self.vaccine.vaccine_allocation[vaccine_type][

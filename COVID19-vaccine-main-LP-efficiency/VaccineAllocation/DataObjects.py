@@ -46,7 +46,7 @@ class SimCalendar:
         for d in self.calendar:
             closedDay = False
             for blNo in range(len(lockdown_blocks)):
-                if d >= lockdown_blocks[blNo][0] and d <= lockdown_blocks[blNo][1]:
+                if lockdown_blocks[blNo][0] <= d <= lockdown_blocks[blNo][1]:
                     closedDay = True
             self.lockdown.append(closedDay)
 
@@ -63,8 +63,7 @@ class SimCalendar:
             closedDay = False
             for blNo in range(len(school_closure_blocks)):
                 if (
-                    d >= school_closure_blocks[blNo][0]
-                    and d <= school_closure_blocks[blNo][1]
+                        school_closure_blocks[blNo][0] <= d <= school_closure_blocks[blNo][1]
                 ):
                     closedDay = True
             self.schools_closed.append(closedDay)
@@ -114,20 +113,20 @@ class SimCalendar:
 
 class City:
     def __init__(
-        self,
-        city,
-        config_filename,
-        calendar_filename,
-        setup_filename,
-        transmission_filename,
-        hospitalization_filename,
-        hosp_icu_filename,
-        hosp_admission_filename,
-        death_from_hosp_filename,
-        death_total_filename,
-        delta_prevalence_filename,
-        omicron_prevalence_filename,
-        variant_prevalence_filename,
+            self,
+            city,
+            config_filename,
+            calendar_filename,
+            setup_filename,
+            transmission_filename,
+            hospitalization_filename,
+            hosp_icu_filename,
+            hosp_admission_filename,
+            death_from_hosp_filename,
+            death_total_filename,
+            delta_prevalence_filename,
+            omicron_prevalence_filename,
+            variant_prevalence_filename,
     ):
         self.city = city
         self.path_to_data = base_path / "instances" / f"{city}"
@@ -151,17 +150,17 @@ class City:
         self.process_data(transmission_filename)
 
     def load_data(
-        self,
-        setup_filename,
-        calendar_filename,
-        hospitalization_filename,
-        hosp_icu_filename,
-        hosp_admission_filename,
-        death_from_hosp_filename,
-        death_total_filename,
-        delta_prevalence_filename,
-        omicron_prevalence_filename,
-        variant_prevalence_filename,
+            self,
+            setup_filename,
+            calendar_filename,
+            hospitalization_filename,
+            hosp_icu_filename,
+            hosp_admission_filename,
+            death_from_hosp_filename,
+            death_total_filename,
+            delta_prevalence_filename,
+            omicron_prevalence_filename,
+            variant_prevalence_filename,
     ):
         """
         Load setup file of the instance.
@@ -319,9 +318,9 @@ class City:
             cal.load_fixed_cocooning(cocooning)
             for dfk in df_transmission.keys():
                 if (
-                    dfk != "date"
-                    and dfk != "transmission_reduction"
-                    and dfk != "cocooning"
+                        dfk != "date"
+                        and dfk != "transmission_reduction"
+                        and dfk != "cocooning"
                 ):
                     self.otherInfo[dfk] = {}
                     for (d, dfv) in zip(df_transmission["date"], df_transmission[dfk]):
@@ -367,12 +366,12 @@ class Vaccine:
     """
 
     def __init__(
-        self,
-        instance,
-        city,
-        vaccine_filename,
-        booster_filename,
-        vaccine_allocation_filename,
+            self,
+            instance,
+            city,
+            vaccine_filename,
+            booster_filename,
+            vaccine_allocation_filename,
     ):
 
         self.path_to_data = base_path / "instances" / f"{city}"
@@ -415,7 +414,7 @@ class Vaccine:
         Must be called after self.vaccine_allocation is updated using self.define_supply
 
         This method creates a mapping between date and "vaccine events" in historical data
-            corresponding to that date -- so that we can look up whether or not a vaccine group event occurs,
+            corresponding to that date -- so that we can look up whether a vaccine group event occurs,
             rather than iterating through all items in self.vaccine_allocation
 
         Creates event_lookup_dict, a dictionary of dictionaries, with the same keys as self.vaccine_allocation,
@@ -452,7 +451,7 @@ class Vaccine:
             return self.event_lookup_dict[vaccine_type][date]
 
     def get_num_eligible(
-        self, total_population, total_risk_gr, vaccine_group_name, v_in, v_out, date
+            self, total_population, total_risk_gr, vaccine_group_name, v_in, v_out, date
     ):
         """
 
@@ -765,7 +764,7 @@ class EpiSetup:
         # See Yang et al. (2021) and Arslan et al. (2021)
 
         # tau: proportion of exposed individuals who become symptomatic
-        # mu: rate from ICU to death (for each age group)
+        # mu_ICU: rate from ICU to death (for each age group)
 
         # IFR: infected fatality ratio (%)
 
@@ -804,12 +803,12 @@ class EpiSetup:
 
     def delta_update_param(self, prev):
         """
-        Update parameters according to delta variant prevelance.
+        Update parameters according to delta variant prevalence.
         """
 
         E_new = 1 / self.sigma_E - 1.5
         self.sigma_E = (
-            self.sigma_E * (1 - prev) + (1 / E_new) * prev
+                self.sigma_E * (1 - prev) + (1 / E_new) * prev
         )  # decreased incubation period.
 
         # Arslan et al. 2021 -- assume Delta is 1.65 times more transmissible than pre-Delta
@@ -818,7 +817,7 @@ class EpiSetup:
         # Arslan et al. 2021 -- assume Delta causes 80% more hospitalizations than pre-Delta
         self.YHR = self.YHR * (1 - prev) + self.YHR * (1.8) * prev
         self.YHR_overall = (
-            self.YHR_overall * (1 - prev) + self.YHR_overall * (1.8) * prev
+                self.YHR_overall * (1 - prev) + self.YHR_overall * (1.8) * prev
         )
 
         self.update_YHR_params()
@@ -828,23 +827,22 @@ class EpiSetup:
         gamma_ICU0 = self.gamma_ICU0
         mu_ICU0 = self.mu_ICU0
         gamma_IH0 = self.gamma_IH0
-
         # Rate of recovery from ICU -- increases with Delta?
         self.gamma_ICU = (
-            gamma_ICU0 * (1 + self.alpha1) * (1 - prev)
-            + gamma_ICU0 * 0.65 * (1 + self.alpha1_delta) * prev
+                gamma_ICU0 * (1 + self.alpha1) * (1 - prev)
+                + gamma_ICU0 * 0.65 * (1 + self.alpha1_delta) * prev
         )
 
         # Rate of transition from ICU to death -- increases with Delta
         self.mu_ICU = (
-            mu_ICU0 * (1 + self.alpha3) * (1 - prev)
-            + self.mu_ICU0 * 0.65 * (1 + self.alpha3_delta) * prev
+                mu_ICU0 * (1 + self.alpha3) * (1 - prev)
+                + self.mu_ICU0 * 0.65 * (1 + self.alpha3_delta) * prev
         )
 
         # Rate of recovery from IH -- decreases with Delta
         self.gamma_IH = (
-            gamma_IH0 * (1 - self.alpha2) * (1 - prev)
-            + gamma_IH0 * (1 - self.alpha2_delta) * prev
+                gamma_IH0 * (1 - self.alpha2) * (1 - prev)
+                + gamma_IH0 * (1 - self.alpha2_delta) * prev
         )
 
         self.alpha4 = self.alpha4_delta * prev + self.alpha4 * (1 - prev)
@@ -856,7 +854,7 @@ class EpiSetup:
         The changes in hosp dynamic in Austin right before omicron emerged.
         """
         self.beta = (
-            self.beta * (1 - prev) + self.beta * (self.omicron_beta) * prev
+                self.beta * (1 - prev) + self.beta * (self.omicron_beta) * prev
         )  # increased transmission
 
         self.YHR = self.YHR0 * (1 - prev) + self.YHR0 * 0.9 * prev
@@ -871,15 +869,15 @@ class EpiSetup:
         gamma_IH0 = self.gamma_IH0
 
         self.gamma_ICU = gamma_ICU0 * (
-            1 + self.alpha1_omic
+                1 + self.alpha1_omic
         ) * 1.1 * prev + gamma_ICU0 * 0.65 * (1 + self.alpha1_delta) * (1 - prev)
 
         self.mu_ICU = mu_ICU0 * (1 + self.alpha3_omic) * prev + mu_ICU0 * 0.65 * (
-            1 + self.alpha3_delta
+                1 + self.alpha3_delta
         ) * (1 - prev)
 
         self.gamma_IH = gamma_IH0 * (1 - self.alpha2_omic) * prev + gamma_IH0 * (
-            1 - self.alpha2_delta
+                1 - self.alpha2_delta
         ) * (1 - prev)
 
         self.alpha4 = self.alpha4_omic * prev + self.alpha4_delta * (1 - prev)
@@ -889,16 +887,16 @@ class EpiSetup:
         Assume an imaginary new variant that is more transmissible.
         """
         self.beta = (
-            self.beta * (1 - prev) + self.beta * (self.new_variant_beta) * prev
+                self.beta * (1 - prev) + self.beta * (self.new_variant_beta) * prev
         )  # increased transmission
 
     def update_icu_params(self, rdrate):
         # update the ICU admission parameter HICUR and update nu
         self.HICUR = self.HICUR * rdrate
         self.nu = (
-            self.gamma_IH
-            * self.HICUR
-            / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                self.gamma_IH
+                * self.HICUR
+                / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
         )
         self.rIH = 1 - (1 - self.rIH) * rdrate
 
@@ -919,9 +917,9 @@ class EpiSetup:
             else:
                 self.mu = self.mu0.copy()
         self.nu = (
-            self.gamma_IH
-            * self.HICUR
-            / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                self.gamma_IH
+                * self.HICUR
+                / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
         )
 
     def update_YHR_params(self):
@@ -930,13 +928,13 @@ class EpiSetup:
         self.omega_P = np.array(
             [
                 (
-                    self.tau
-                    * self.omega_IY
-                    * (
-                        self.YHR_overall[a] / self.Eta[a]
-                        + (1 - self.YHR_overall[a]) / self.gamma_IY
-                    )
-                    + (1 - self.tau) * self.omega_IA / self.gamma_IA
+                        self.tau
+                        * self.omega_IY
+                        * (
+                                self.YHR_overall[a] / self.Eta[a]
+                                + (1 - self.YHR_overall[a]) / self.gamma_IY
+                        )
+                        + (1 - self.tau) * self.omega_IA / self.gamma_IA
                 )
                 / (self.tau * self.omega_IY + (1 - self.tau) * self.omega_IA)
                 * self.rho_Y
@@ -965,9 +963,9 @@ class EpiSetup:
         try:
             self.HICUR0 = self.HICUR
             self.nu = (
-                self.gamma_IH
-                * self.HICUR
-                / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
+                    self.gamma_IH
+                    * self.HICUR
+                    / (self.mu + (self.gamma_IH - self.mu) * self.HICUR)
             )
             if isinstance(self.gamma_ICU, np.ndarray):
                 self.gamma_ICU = self.gamma_ICU.reshape(self.gamma_ICU.size, 1)
@@ -976,15 +974,15 @@ class EpiSetup:
                 self.mu_ICU = self.mu_ICU.reshape(self.mu_ICU.size, 1)
                 self.mu_ICU0 = self.mu_ICU.copy()
             self.nu_ICU = (
-                self.gamma_ICU
-                * self.ICUFR
-                / (self.mu_ICU + (self.gamma_ICU - self.mu_ICU) * self.ICUFR)
+                    self.gamma_ICU
+                    * self.ICUFR
+                    / (self.mu_ICU + (self.gamma_ICU - self.mu_ICU) * self.ICUFR)
             )
         except:
             self.nu = (
-                self.gamma_IH
-                * self.HFR
-                / (self.mu + (self.gamma_IH - self.mu) * self.HFR)
+                    self.gamma_IH
+                    * self.HFR
+                    / (self.mu + (self.gamma_IH - self.mu) * self.HFR)
             )
 
     def effective_phi(self, school, cocooning, social_distance, demographics, day_type):
@@ -1019,21 +1017,21 @@ class EpiSetup:
         # Assumes 95% reduction on last age group and high risk cocooning
         if day_type == 1:  # Weekday
             phi_age_risk = (1 - social_distance) * (
-                phi_all_extended - school * phi_school_extended
+                    phi_all_extended - school * phi_school_extended
             )
             if cocooning > 0:
                 phi_age_risk_copy = phi_all_extended - school * phi_school_extended
         elif day_type == 2 or day_type == 3:  # is a weekend or holiday
             phi_age_risk = (1 - social_distance) * (
-                phi_all_extended - phi_school_extended - phi_work_extended
+                    phi_all_extended - phi_school_extended - phi_work_extended
             )
             if cocooning > 0:
                 phi_age_risk_copy = (
-                    phi_all_extended - phi_school_extended - phi_work_extended
+                        phi_all_extended - phi_school_extended - phi_work_extended
                 )
         else:
             phi_age_risk = (1 - social_distance) * (
-                phi_all_extended - phi_school_extended
+                    phi_all_extended - phi_school_extended
             )
             if cocooning > 0:
                 phi_age_risk_copy = phi_all_extended - phi_school_extended
