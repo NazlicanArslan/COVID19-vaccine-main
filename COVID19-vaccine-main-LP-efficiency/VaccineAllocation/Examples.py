@@ -125,7 +125,7 @@ mtp = MultiTierPolicy(austin, tiers, thresholds, "green")
 
 # Create an instance of SimReplication with seed 500.
 # rep = SimReplication(austin, vaccines, mtp, 500)
-rep = SimReplication(austin, vaccines, None, None)
+rep = SimReplication(austin, vaccines, mtp, None)
 # Note that specifying a seed of -1 creates a simulation replication
 #   with average values for the "random" epidemiological parameter
 #   values and deterministic binomial transitions

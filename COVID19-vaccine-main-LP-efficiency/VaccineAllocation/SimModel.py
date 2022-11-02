@@ -360,7 +360,6 @@ class SimReplication:
         epi = copy.deepcopy(self.epi_rand)
 
         # print(epi.YHR, epi.YHR_overall)
-
         if t < len(self.instance.real_hosp):
             phi_t = epi.effective_phi(
                 self.instance.cal.schools_closed[t],
@@ -464,7 +463,7 @@ class SimReplication:
         rate_IYH = discrete_approx(
             np.array(
                 [
-                    [(epi.pi[a, l]) * epi.Eta[a] * epi.rIH for l in range(L)]
+                    [(epi.pi[a, l]) * epi.Eta[a] * epi.pIH for l in range(L)]
                     for a in range(A)
                 ]
             ),
@@ -473,13 +472,13 @@ class SimReplication:
         rate_IYICU = discrete_approx(
             np.array(
                 [
-                    [(epi.pi[a, l]) * epi.Eta[a] * (1 - epi.rIH) for l in range(L)]
+                    [(epi.pi[a, l]) * epi.Eta[a] * (1 - epi.pIH) for l in range(L)]
                     for a in range(A)
                 ]
             ),
             step_size,
         )
-        rate_IHICU = discrete_approx(epi.nu * epi.mu, step_size)
+        rate_IHICU = discrete_approx(epi.nu * epi.etaICU, step_size)
         rate_IHR = discrete_approx((1 - epi.nu) * epi.gamma_IH, step_size)
         rate_ICUD = discrete_approx(epi.nu_ICU * epi.mu_ICU, step_size)
         rate_ICUR = discrete_approx((1 - epi.nu_ICU) * epi.gamma_ICU, step_size)

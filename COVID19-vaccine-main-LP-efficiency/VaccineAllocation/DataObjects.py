@@ -787,7 +787,7 @@ class EpiSetup:
         if isinstance(self.gamma_IH, np.ndarray):
             self.gamma_IH = self.gamma_IH.reshape(self.gamma_IH.size, 1)
             self.gamma_IH0 = self.gamma_IH.copy()
-        if isinstance(self.mu, np.ndarray):
+        if isinstance(self.etaICU, np.ndarray):
             self.etaICU = self.etaICU.reshape(self.etaICU.size, 1)
             self.etaICU0 = self.etaICU.copy()
 
