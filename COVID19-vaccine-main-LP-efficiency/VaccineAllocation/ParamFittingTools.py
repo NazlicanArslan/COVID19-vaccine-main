@@ -54,12 +54,12 @@ def run_fit(
         "w_d": w_d,
         "w_iyd": w_iyd,
     }
-    ########## ########## ##########
+    ##############################
     # Run least squares and choose a method
     res = least_squares_fit(initial_guess, x_bound, kwargs)
     SSE = res.cost
 
-    ########## ########## ##########
+    ##############################
     # Get variable value
     opt_tr_reduction = res.x
     if city.city == "austin":

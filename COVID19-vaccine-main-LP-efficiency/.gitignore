@@ -19,7 +19,7 @@
 # unwanted output
 *./temp
 *mip_sol*.pdf
-VaccineAllocation/plots/*.pdf
+VaccineAllocation/plots/*
 VaccineAllocation/output/*
 VaccineAllocation/reporting/reports/*
 VaccineAllocation/reporting/temp/*

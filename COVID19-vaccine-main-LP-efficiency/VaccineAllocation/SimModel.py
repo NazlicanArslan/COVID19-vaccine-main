@@ -359,7 +359,6 @@ class SimReplication:
 
         epi = copy.deepcopy(self.epi_rand)
 
-        # print(epi.YHR, epi.YHR_overall)
         if t < len(self.instance.real_hosp):
             phi_t = epi.effective_phi(
                 self.instance.cal.schools_closed[t],
@@ -423,11 +422,6 @@ class SimReplication:
                 epi.update_icu_params(self.instance.config["rd_rate"])
         else:
             epi.update_icu_all(t, self.instance.otherInfo)
-
-        # print(epi.gamma_ICU0[0][0])
-        # print(epi.rIH)
-
-        # print(epi.YHR)
 
         discrete_approx = self.discrete_approx
         step_size = self.step_size

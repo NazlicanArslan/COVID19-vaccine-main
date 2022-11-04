@@ -723,7 +723,7 @@ class EpiSetup:
 
     def sample_random_params(self, rng):
         """
-        Generates random parametes from a given random stream.
+        Generates random parameters from a given random stream.
         Coupled parameters are updated as well.
         Args:
             rng (RandomState): a RandomState instance from numpy.
@@ -770,18 +770,9 @@ class EpiSetup:
 
         self.beta = self.beta0  # Unmitigated transmission rate
         self.YFR = self.IFR / self.tau  # symptomatic fatality ratio (%)
-        # ^ Arslan et al. (2021) says denominator should be (1 - self.tau)????
         self.pIH0 = self.pIH
         self.YHR0 = self.YHR  # % of symptomatic infections that go to hospital
         self.YHR_overall0 = self.YHR_overall
-
-        # LP Edit
-        # Uncomment this and comment out the other overriding of the 0-variables
-        #   under update_nu_params
-        # THE RESULTS ARE DIFFERENT -- THE RESULTS SHOULD NOT DEPEND ON
-        #   WHETHER OR NOT THE VARIABLES ARE AN ARRAY
-        # self.gamma_ICU0 = self.gamma_ICU.reshape(self.gamma_ICU.size, 1)
-        # self.mu_ICU0 = self.mu_ICU.reshape(self.mu_ICU.size, 1)
 
         # if gamma_IH and mu are lists, reshape them for right dimension
         if isinstance(self.gamma_IH, np.ndarray):
@@ -850,7 +841,7 @@ class EpiSetup:
     def omicron_update_param(self, prev):
         """
         Update parameters according omicron.
-        Assume increase in the tranmission.
+        Assume increase in the transmission.
         The changes in hosp dynamic in Austin right before omicron emerged.
         """
         self.beta = (
@@ -988,7 +979,7 @@ class EpiSetup:
     def effective_phi(self, school, cocooning, social_distance, demographics, day_type):
         """
         school (int): yes (1) / no (0) schools are closed
-        cocooning (float): percentage of transmition reduction [0,1]
+        cocooning (float): percentage of transmission reduction [0,1]
         social_distance (int): percentage of social distance (0,1)
         demographics (ndarray): demographics by age and risk group
         day_type (int): 1 Weekday, 2 Weekend, 3 Holiday, 4 Long Holiday

@@ -136,7 +136,7 @@ rep = SimReplication(austin, vaccines, mtp, None)
 #   of the user-specified "calendar.csv") works.
 # Attributes in the SimReplication instance are updated in-place
 #   to reflect the most current simulation state.
-rep.simulate_time_period(945)
+rep.simulate_time_period(766)
 
 # After simulating, we can query the R-squared.
 # If the simulation has been simulated for fewer days than the
