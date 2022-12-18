@@ -40,15 +40,11 @@
 # OptTools contains utility functions for optimization purposes.
 
 import copy
-
-from SimObjects import MultiTierPolicy
+from SimObjects import MultiTierPolicy, CDCTierPolicy
 from DataObjects import City, TierInfo, Vaccine
-from ParamFittingTools import run_fit, save_output
 from SimModel import SimReplication
-from InputOutputTools import export_rep_to_json
+import InputOutputTools
 import OptTools
-from Plotting import plot_from_file
-import datetime as dt
 
 # Import other Python packages
 import numpy as np
@@ -67,31 +63,27 @@ import numpy as np
 # (3) Vaccine instance that holds vaccine groups and historical
 #   vaccination data
 
-austin = City(
-    "austin",
-    "austin_test_IHT.json",
-    "calendar.csv",
-    "setup_data_Final.json",
-    "transmission.csv",
-    "austin_real_hosp_updated.csv",
-    "austin_real_icu_updated.csv",
-    "austin_hosp_ad_updated.csv",
-    "austin_real_death_from_hosp_updated.csv",
-    "austin_real_total_death.csv",
-    "delta_prevalence.csv",
-    "omicron_prevalence.csv",
-    "variant_prevalence.csv",
-)
+austin = City("austin",
+              "austin_test_IHT.json",
+              "calendar.csv",
+              "setup_data_Final.json",
+              "transmission.csv",
+              "austin_real_hosp_updated.csv",
+              "austin_real_icu_updated.csv",
+              "austin_hosp_ad_updated.csv",
+              "austin_real_death_from_hosp_updated.csv",
+              "austin_real_total_death.csv",
+              "delta_prevalence.csv",
+              "omicron_prevalence.csv",
+              "variant_prevalence.csv")
 
 tiers = TierInfo("austin", "tiers5_opt_Final.json")
 
-vaccines = Vaccine(
-    austin,
-    "austin",
-    "vaccines.json",
-    "booster_allocation_fixed.csv",
-    "vaccine_allocation_fixed.csv",
-)
+vaccines = Vaccine(austin,
+                   "austin",
+                   "vaccines.json",
+                   "booster_allocation_fixed.csv",
+                   "vaccine_allocation_fixed.csv")
 
 ###############################################################################
 
@@ -124,8 +116,8 @@ thresholds = (-1, 100, 200, 500, 1000)
 mtp = MultiTierPolicy(austin, tiers, thresholds, "green")
 
 # Create an instance of SimReplication with seed 500.
-# rep = SimReplication(austin, vaccines, mtp, 500)
-rep = SimReplication(austin, vaccines, mtp, None)
+rep = SimReplication(austin, vaccines, mtp, 500)
+
 # Note that specifying a seed of -1 creates a simulation replication
 #   with average values for the "random" epidemiological parameter
 #   values and deterministic binomial transitions
@@ -136,28 +128,16 @@ rep = SimReplication(austin, vaccines, mtp, None)
 #   of the user-specified "calendar.csv") works.
 # Attributes in the SimReplication instance are updated in-place
 #   to reflect the most current simulation state.
-rep.simulate_time_period(766)
+rep.simulate_time_period(945)
 
 # After simulating, we can query the R-squared.
 # If the simulation has been simulated for fewer days than the
 #   timeframe of the historical time period, the R-squared is
 #   computed for this subset of days.
 print(rep.compute_rsq())
-#
-# After simulating, we expert it to json file
 
-export_rep_to_json(
-    rep,
-    austin.path_to_data / "output.json",
-    austin.path_to_data / "v0.json",
-    austin.path_to_data / "v1.json",
-    austin.path_to_data / "v2.json",
-    austin.path_to_data / "v3.json",
-)
-
-plot_from_file(austin.path_to_data / "output.json", austin)
 # After simulating, we can query the cost of the specified policy.
-# print(rep.compute_cost())
+print(rep.compute_cost())
 
 # We can also query whether the specified policy is
 #   feasible, i.e. whether it prevents an ICU capacity violation.
@@ -165,10 +145,10 @@ print(rep.compute_feasibility())
 
 # If we want to test the same policy on a different sample path,
 #   we can still use the same policy object as long as we clear it.
-# mtp.reset()
+mtp.reset()
 
 # Now we create an instance of SimReplication with seed 1010.
-# rep = SimReplication(austin, vaccines, mtp, 1010)
+rep = SimReplication(austin, vaccines, mtp, 1010)
 
 # Compare the R-squared and costs of seed 1010 versus seed 500.
 # Note that so far we are not simulating our policy on
@@ -203,27 +183,7 @@ print(rep.policy.tier_history)
 #   reset(), so simulating rep will draw random numbers
 #   from where the random number generator last left off
 #   (before the reset).
-# rep.reset()
-
-
-###############################################################################
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-# Example B: Parameter fitting
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-change_dates = [
-    dt.date(2020, 2, 15),
-    dt.date(2020, 3, 24),
-    dt.date(2020, 4, 12),
-    dt.date(2020, 6, 13),
-]
-param1 = 7.3 * (1 - 0.10896) + 9.9 * 0.10896
-param2 = (7.3 * (1 - 0.10896) + 9.9 * 0.10896) * 5
-initial_guess = np.array([0.6, 0.15, 3.5, 0.002, 0.425, 0.57, 0.68, 0.55])
-x_bound = ([0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 10, 1, 1, 1, 1, 1])
-
-
-# transmission = run_fit(austin, vaccines, change_dates,x_bound, initial_guess, 1.5, param1 , param2, param2, dt.datetime(2020, 4, 20), dt.datetime(2022, 4, 4))
+rep.reset()
 
 # Due to the nuances of the random number generation,
 #   in many cases it is more straightforward and less
@@ -302,16 +262,9 @@ rep.simulate_time_period(800)
 #   sampled in the EpiSetup object.
 # These files will save in the same directory as the
 #   main .py file.
-InputOutputTools.export_rep_to_json(
-    rep,
-    "sim_rep.json",
-    "v0.json",
-    "v1.json",
-    "v2.json",
-    "v3.json",
-    "policy.json",
-    "random_params.json",
-)
+InputOutputTools.export_rep_to_json(rep, "sim_rep.json",
+                                    "v0.json", "v1.json", "v2.json", "v3.json",
+                                    "policy.json", "random_params.json")
 
 # To read-in previously saved simulation states,
 #   we create a new SimReplication instance and apply
@@ -319,16 +272,9 @@ InputOutputTools.export_rep_to_json(
 # The files must be in the same directory as the main .py file.
 # Note the line about rep.rng -- we will explain this later.
 rep = SimReplication(austin, vaccines, mtp, 1000)
-InputOutputTools.import_rep_from_json(
-    rep,
-    "sim_rep.json",
-    "v0.json",
-    "v1.json",
-    "v2.json",
-    "v3.json",
-    "policy.json",
-    "random_params.json",
-)
+InputOutputTools.import_rep_from_json(rep, "sim_rep.json",
+                                      "v0.json", "v1.json", "v2.json", "v3.json",
+                                      "policy.json", "random_params.json")
 rep.rng = np.random.RandomState(10000)
 
 # Now rep.next_time is 800, where we last left off.
@@ -373,4 +319,23 @@ print(rep.compute_cost())
 
 ###############################################################################
 
-# More examples forthcoming -- stay tuned!
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example C: Running the simulation with the CDC staged-alert system
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# This is very similar to how we run the usual code, we just need to define the staged-alert policy with the
+# CDC system method. The system has three different indicators; Case counts, Hospital admissions and  Percent hospital
+# beds. Depending on the case count threshold the other two indicators take different values. I define them as
+# "non_surge" and "surge" but we can change those later if we want to do more general systems.
+
+case_threshold = 200
+hosp_adm_thresholds = {"non_surge": (-1, -1, 10, 20, 20), "surge": (-1, -1, -1, 10, 10)}
+staffed_thresholds = {"non_surge": (-1, -1, 0.1, 0.15, 0.15), "surge": (-1, -1, -1, 0.1, 0.1)}
+
+# CDC threshold uses 7-day sum of hospital admission per 100k. The equivalent values if we were to use 7-day avg.
+# hospital admission instead are as follows. We use equivalent thresholds to plot and evaluate the results in our
+# indicator. I used the same CDC thresholds all the time but if we decide to optimize CDC threshold, we can calculate
+# the equivalent values in the model and save to the policy.json.
+equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
+ctp = CDCTierPolicy(austin, tiers, case_threshold, hosp_adm_thresholds, staffed_thresholds)
+
+rep = SimReplication(austin, vaccines, ctp, -1)
