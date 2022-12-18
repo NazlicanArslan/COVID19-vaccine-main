@@ -125,7 +125,11 @@ VaccineGroup_IO_arrays_var_names = SimReplication_IO_arrays_var_names
 MultiTierPolicy_IO_var_names = (
     "community_transmission",
     "lockdown_thresholds",
+    "case_threshold",
+    "hosp_adm_thresholds",
+    "staffed_bed_thresholds",
     "tier_history",
+    "surge_history"
 )
 
 ###############################################################################
@@ -323,7 +327,8 @@ def export_rep_to_json(
     if multi_tier_policy_filename is not None:
         d = {}
         for k in MultiTierPolicy_IO_var_names:
-            d[k] = getattr(sim_rep.policy, k)
+            if hasattr(sim_rep.policy, k):
+                d[k] = getattr(sim_rep.policy, k)
         json.dump(d, open(multi_tier_policy_filename, "w"))
 
     # Export sim_rep.epi_rand variables

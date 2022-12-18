@@ -359,7 +359,9 @@ class SimReplication:
 
         epi = copy.deepcopy(self.epi_rand)
 
-        if t < len(self.instance.real_hosp):
+        if self.instance.cal.fixed_transmission_reduction[t] is not None:
+            # We can fix the transmission reduction as part of projections.
+            # It is better to keep real historical data separate from the tiers.
             phi_t = epi.effective_phi(
                 self.instance.cal.schools_closed[t],
                 self.instance.cal.fixed_cocooning[t],
