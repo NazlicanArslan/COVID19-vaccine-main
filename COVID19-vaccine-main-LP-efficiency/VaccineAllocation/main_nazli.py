@@ -1,16 +1,13 @@
-import copy
-
 from SimObjects import MultiTierPolicy, CDCTierPolicy
 from DataObjects import City, TierInfo, Vaccine
-from ParamFittingTools import run_fit, save_output
 from SimModel import SimReplication
 from InputOutputTools import export_rep_to_json
-import OptTools
 from Plotting_nazli import plot_from_file
-import datetime as dt
+
 
 # Import other Python packages
 import numpy as np
+import datetime as dt
 
 austin = City(
     "austin",
@@ -22,7 +19,7 @@ austin = City(
     "austin_real_icu_updated.csv",
     "austin_hosp_ad_updated.csv",
     "austin_real_death_from_hosp_updated.csv",
-    "austin_real_total_death.csv",
+    "austin_real_death_from_home.csv",
     "delta_prevalence.csv",
     "omicron_prevalence.csv",
     "variant_prevalence.csv"

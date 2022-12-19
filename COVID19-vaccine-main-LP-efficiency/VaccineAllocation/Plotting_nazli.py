@@ -33,7 +33,7 @@ def plot_from_file(simulation_filename, policy_filename, instance, real_history_
             print('The data is not outputted')
             pass
         if var == "ICU_history":
-            real_data = instance.real_hosp_icu
+            real_data = instance.real_ICU_history
             plot = Plot(instance, policy_data, real_history_end_date, real_data, y_data, var)
             plot.vertical_plot(policy_data["tier_history"], tier_colors)
         elif var == "ToIY_history":
@@ -48,7 +48,7 @@ def plot_from_file(simulation_filename, policy_filename, instance, real_history_
             plot = Plot(instance, policy_data, real_history_end_date, real_data, y_data, var)
             plot.vertical_plot(policy_data["surge_history"], surge_colors)
         elif var == "ToIHT_history":
-            real_data = np.array(instance.real_hosp_ad)
+            real_data = np.array(instance.real_ToIHT_history)
             plot = Plot(instance, policy_data, real_history_end_date, real_data, y_data, var, 'k')
             plot.changing_horizontal_plot(policy_data["surge_history"],
                                           ["non_surge", "surge"],
@@ -62,12 +62,14 @@ def plot_from_file(simulation_filename, policy_filename, instance, real_history_
                                           tier_colors)
 
         elif var == "D_history":
-            real_data = np.cumsum(instance.real_death_total)
+            real_data = real_data = [
+                        ai - bi for (ai, bi) in zip(instance.real_IYD_history, instance.real_ICUD_history)
+                    ]
             plot = Plot(instance, policy_data, real_history_end_date, real_data, y_data, var, 'b')
             plot.vertical_plot(policy_data["tier_history"], tier_colors)
         elif var == "IH_history":
             real_data = [
-                ai - bi for (ai, bi) in zip(instance.real_hosp, instance.real_hosp_icu)
+                ai - bi for (ai, bi) in zip(instance.real_IH_history, instance.real_ICU_history)
             ]
             plot = Plot(instance, policy_data, real_history_end_date, real_data, y_data, f"{var}_average", 'k')
             plot.changing_horizontal_plot(policy_data["surge_history"],

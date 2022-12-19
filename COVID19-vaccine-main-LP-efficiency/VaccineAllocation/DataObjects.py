@@ -123,7 +123,7 @@ class City:
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
-            death_total_filename,
+            death_from_home_filename,
             delta_prevalence_filename,
             omicron_prevalence_filename,
             variant_prevalence_filename,
@@ -142,7 +142,7 @@ class City:
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
-            death_total_filename,
+            death_from_home_filename,
             delta_prevalence_filename,
             omicron_prevalence_filename,
             variant_prevalence_filename,
@@ -157,7 +157,7 @@ class City:
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
-            death_total_filename,
+            death_from_home_filename,
             delta_prevalence_filename,
             omicron_prevalence_filename,
             variant_prevalence_filename,
@@ -206,33 +206,33 @@ class City:
         self.weekday_holidays = list(cal_df["Date"][cal_df["Calendar"] == 3])
         self.weekday_longholidays = list(cal_df["Date"][cal_df["Calendar"] == 4])
 
-        self.real_hosp = (
+        self.real_IH_history = (
             self.read_hosp_related_data(hospitalization_filename)
             if hospitalization_filename is not None
             else None
         )
 
-        self.real_hosp_icu = (
+        self.real_ICU_history = (
             self.read_hosp_related_data(hosp_icu_filename)
             if hosp_icu_filename is not None
             else None
         )
 
-        self.real_hosp_ad = (
+        self.real_ToIHT_history = (
             self.read_hosp_related_data(hosp_admission_filename)
             if hosp_admission_filename is not None
             else None
         )
 
-        self.real_death_hosp = (
+        self.real_ToICUD_history = (
             self.read_hosp_related_data(death_from_hosp_filename)
             if death_from_hosp_filename is not None
             else None
         )
 
-        self.real_death_total = (
-            self.read_hosp_related_data(death_total_filename)
-            if death_total_filename is not None
+        self.real_ToIYD_history = (
+            self.read_hosp_related_data(death_from_home_filename)
+            if death_from_home_filename is not None
             else None
         )
 
@@ -341,7 +341,7 @@ class City:
             print("No calendar was provided")
 
         # Save real_hosp in calendar
-        cal.real_hosp = self.real_hosp
+        cal.real_hosp = self.real_IH_history
 
         # Save calendar
         self.cal = cal

@@ -1,416 +1,187 @@
 ###############################################################################
 
 # ParamFittingTools.py
-# This module contains Opt(imization) Tools, and includes functions
-#   for generating realistic sample paths, enumerating candidate policies,
-#   and optimization.
-# This module is not used to run the SEIR model. This module contains
-#   functions "on top" of the SEIR model.
-
-# Guyi Chen 2022
 
 ###############################################################################
 
-import numpy as np
-
-from DataObjects import City, TierInfo, Vaccine
 from SimModel import SimReplication
+import numpy as np
 from scipy.optimize import least_squares
 import datetime as dt
-import InputOutputTools
-import copy
-import itertools
 import pandas as pd
 
 
-def run_deterministic_path(city, vaccine_data):
-    rep = SimReplication(city, vaccine_data, None, -1)
-    return rep
+class ParameterFitting:
+    def __init__(self, city: object,
+                 vaccines: object,
+                 variables: list,
+                 initial_guess: list,
+                 bounds: tuple,
+                 objective_weights: dict,
+                 time_frame: tuple,
+                 change_dates=None,
+                 transmission_reduction=None,
+                 cocoon=None):
+        """
+        ToDo: This version assume transmission reduction and cocooning is same in the recent fit, change it later.
 
+        :param city:
+        :param vaccines:
+        :param variables: the name of variables that will be fitted to the data. If you would like to fit
+        transmission reduction please input "transmission_reduction" as the last element of the dictionary.
+        :param initial_guess: the list initial guesses for the variables. It is very crucial to input good initial
+        values for the least square fit to work.
+        :param bounds: tuple of list of bounds for the variables. (list_of_lb, list_of_ub)
+        :param objective_weights: dictionary of data included in the objective and their respective obj weights.
+        :param time_frame: tuple of start and end date for the period we would like to fit the data.
+        :param change_dates: if we are fitting transmission reduction we need to input the dates where the
+        social distancing behaviour changes.
+        :param transmission_reduction: the list of transmission reductions. We don't fit the transmission reduction
+        from scratch. The list contains the fixed values that are already fitted.
+        If the input is None, then fit the transmission reduction.
+        :param cocoon: similar to transmission_reduction
+        """
+        self.result = None
+        self.city = city
+        self.vaccines = vaccines
+        self.variables = variables
+        self.initial_guess = initial_guess
+        self.bounds = bounds
+        self.objective_weights = objective_weights
+        self.change_dates = change_dates
+        self.time_frame = time_frame
+        self.transmission_reduction = transmission_reduction
+        self.cocoon = cocoon
 
-def run_fit(
-        city,
-        vaccines,
-        change_dates,
-        x_bound,
-        initial_guess,
-        w_ih,
-        w_icu,
-        w_iyih,
-        w_d,
-        w_iyd,
-        start_date,
-        end_date,
-):
-    kwargs = {
-        "change_dates": change_dates,
-        "city": city,
-        "vaccine_data": vaccines,
-        "t_start": city.cal.calendar.index(start_date),
-        "t_end": city.cal.calendar.index(end_date),
-        "w_ih": w_ih,
-        "w_icu": w_icu,
-        "w_iyih": w_iyih,
-        "w_d": w_d,
-        "w_iyd": w_iyd,
-    }
-    ##############################
-    # Run least squares and choose a method
-    res = least_squares_fit(initial_guess, x_bound, kwargs)
-    SSE = res.cost
+        if transmission_reduction is not None:
+            assert ("transmission_reduction" in transmission_reduction
+                    and transmission_reduction.keys().index("transmission_reduction") == len(transmission_reduction),
+                    "transmission_reduction must be the last element of the variable list!")
 
-    ##############################
-    # Get variable value
-    opt_tr_reduction = res.x
-    if city.city == "austin":
-        contact_reduction = np.array(
-            [
-                opt_tr_reduction[1],
-                opt_tr_reduction[2],
-                opt_tr_reduction[3],
-            ]
+        self.rep = SimReplication(city, vaccines, None, -1)
+
+    def run_fit(self):
+        """
+        Function that runs the parameter fitting.
+        """
+        res = self.least_squares_fit()
+        x_variables = res.x
+        print("SSE:", res.cost)
+        solution = {}
+        for idx, var in enumerate(self.variables):
+            if var == "transmission_reduction":
+                tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables[idx:])
+                end_date = []
+                for date in self.change_dates[1:]:
+                    end_date.append(str(date - dt.timedelta(days=1)))
+                table = pd.DataFrame(
+                    {
+                        "start_date": self.change_dates[:-1],
+                        "end_date": end_date,
+                        "contact_reduction": tr_reduc,
+                        "cocoon": cocoon_reduc,
+                    }
+                )
+                solution[var] = table
+                print(table)
+            else:
+                print(f"{var} = {x_variables[idx]}")
+                solution[var] = x_variables[idx]
+        return solution
+
+    def least_squares_fit(self):
+        """
+        Function that runs the least squares fit
+        """
+        result = least_squares(
+            self.residual_error,
+            self.initial_guess,
+            bounds=self.bounds,
+            method="trf",
+            verbose=2,
         )
+        return result
 
-        cocoon = np.array(
-            [
-                opt_tr_reduction[4],
-                opt_tr_reduction[5],
-                opt_tr_reduction[6],
-            ]
-        )
-        print("beta_0:", city.epi_rand.beta)
-        print("SSE:", SSE)
-        # print('alpha1', opt_tr_reduction[0])
-        # print('alpha2', opt_tr_reduction[1])
-        # print('alpha3', opt_tr_reduction[2])
-        # print('alpha4', opt_tr_reduction[3])
-        # print('rIH', opt_tr_reduction[0])
-        # contact_reduction = np.array([  0.052257,
-        #         0.787752,
-        #         0.641986,
-        #         0.827015,
-        #         0.778334,
-        #         0.752980,
-        #         0.674321,
-        #         0.801538,
-        #         0.811144,
-        #         0.6849,
-        #         0.5551,
-        #         0.6446,
-        #         0.6869,
-        #         0.7186,
-        #         opt_tr_reduction[5],
-        #         opt_tr_reduction[6],
-        #         opt_tr_reduction[7]])
+    def residual_error(self, x_variables):
+        print("new value: ", x_variables)
+        for idx, var in enumerate(self.variables):
+            if hasattr(self.city.base_epi, var):
+                setattr(self.city.base_epi, var, x_variables[idx])
+            elif var == "transmission_reduction":
+                df_transmission = self.extend_transmission_reduction(x_variables[idx:])
+                transmission_reduction = [
+                    (d, tr)
+                    for (d, tr) in zip(
+                        df_transmission["date"], df_transmission["transmission_reduction"]
+                    )
+                ]
+                self.city.cal.load_fixed_transmission_reduction(transmission_reduction)
+                cocooning = [
+                    (d, c) for (d, c) in zip(df_transmission["date"], df_transmission["cocooning"])
+                ]
+                self.city.cal.load_fixed_cocooning(cocooning)
 
-        # cocoon = np.array([0,
-        #         0.787752,
-        #         0.787752,
-        #         0.827015,
-        #         0.827015,
-        #         0.787752,
-        #         0.827015,
-        #         0.801538,
-        #         0.811144,
-        #         0.6849,
-        #         0.5551,
-        #         0.6446,
-        #         0.6869,
-        #         0.7186,
-        #         opt_tr_reduction[5],
-        #         opt_tr_reduction[6],
-        #         opt_tr_reduction[7]])
+        # Simulate the system with the new variables:
+        self.rep.simulate_time_period(self.time_frame[1])
 
-        # print('beta_0:', city.epi_rand.beta)
-        # print('SSE:', SSE)
-        # print('alpha1_omic=', opt_tr_reduction[0])
-        # print('alpha2_omic=', opt_tr_reduction[1])
-        # print('alpha3_omic=', opt_tr_reduction[2])
-        # print('alpha4_omic=', opt_tr_reduction[3])
-        # print('immune escape', opt_tr_reduction[4])
+        residual_error = []
+        # Calculate the residual error:
+        for key, var in self.objective_weights.items():
+            real_data = getattr(self.city, f"real_{key}")[self.time_frame[0]: self.time_frame[1] + 1]
+            sim_data = np.sum(np.array(getattr(self.rep, key)), axis=(1, 2))[self.time_frame[0]: self.time_frame[1] + 1]
+            error = [var * (a_i - b_i) for a_i, b_i in zip(real_data, sim_data)]
+            residual_error.extend(error)
 
-    elif city.city == "cook":
-        contact_reduction = np.array(
-            [
-                opt_tr_reduction[0],
-                opt_tr_reduction[1],
-                opt_tr_reduction[2],
-                opt_tr_reduction[3],
-            ]
-        )
+        self.rep.reset()
+        return residual_error
 
-        cocoon = np.array(
-            [
-                # opt_tr_reduction[3],
-                opt_tr_reduction[4],
-                opt_tr_reduction[5],
-                opt_tr_reduction[6],
-                opt_tr_reduction[7],
-                # opt_tr_reduction[8],
-                # opt_tr_reduction[9],
-            ]
-        )
-        print("beta_0:", city.epi_rand.beta)
-        print("SSE:", SSE)
-        # print('alpha1', opt_tr_reduction[0])
-        # print('alpha2', opt_tr_reduction[1])
-        # print('alpha3', opt_tr_reduction[2])
-        # print('alpha4', opt_tr_reduction[3])
-        # print('rIH', opt_tr_reduction[0])
+    def create_transmission_reduction(self, x_variables):
+        """
+                If we are optimizing the transmission reduction values convert the x_variables
+                into transmission reduction list.
+                :return:
+                """
+        change_dates = self.change_dates
+        i = 0
+        tr_reduc = []
+        for tr in self.transmission_reduction:
+            if tr is None:
+                tr_reduc.append(x_variables[i])
+                i += 1
+            else:
+                tr_reduc.append(tr)
 
-    betas = city.epi_rand.beta * (1 - (contact_reduction))
-    end_date = []
-    for idx in range(len(change_dates[1:])):
-        end_date.append(str(change_dates[1:][idx] - dt.timedelta(days=1)))
+        cocoon_reduc = []
+        i = 0
+        for tr in self.cocoon:
+            if tr is None:
+                cocoon_reduc.append(x_variables[i])
+                i += 1
+            else:
+                cocoon_reduc.append(tr)
+        return tr_reduc, cocoon_reduc
 
-    # breakpoint()
-    # for the high risk groups uses cocoon instead of contact reduction
-    table = pd.DataFrame(
-        {
-            "start_date": change_dates[:-1],
-            "end_date": end_date,
-            "contact_reduction": contact_reduction,
-            "beta": betas,
-            "cocoon": cocoon,
+    def extend_transmission_reduction(self, x_variables):
+        tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables)
+        change_dates = self.change_dates
+        date_list = []
+        tr_reduc_extended, cocoon_reduc_extended = [], []
+        for idx in range(len(change_dates[:-1])):
+            tr_reduc_extended.extend([tr_reduc[idx]] * (change_dates[idx + 1] - change_dates[idx]).days)
+            date_list.extend(
+                [
+                    str(change_dates[idx] + dt.timedelta(days=x))
+                    for x in range((change_dates[idx + 1] - change_dates[idx]).days)
+                ]
+            )
+            cocoon_reduc_extended.extend(
+                [cocoon_reduc[idx]] * (change_dates[idx + 1] - change_dates[idx]).days
+            )
+
+        d = {
+            "date": pd.to_datetime(date_list),
+            "transmission_reduction": tr_reduc_extended,
+            "cocooning": cocoon_reduc_extended,
         }
-    )
-    print(table)
-
-    # Save optimized values to transmission_new.csv
-    tr_reduc = []
-    date_list = []
-    cocoon_reduc = []
-    for idx in range(len(change_dates[:-1])):
-        tr_reduc.extend(
-            [contact_reduction[idx]] * (change_dates[idx + 1] - change_dates[idx]).days
-        )
-        date_list.extend(
-            [
-                str(change_dates[idx] + dt.timedelta(days=x))
-                for x in range((change_dates[idx + 1] - change_dates[idx]).days)
-            ]
-        )
-        cocoon_reduc.extend(
-            [cocoon[idx]] * (change_dates[idx + 1] - change_dates[idx]).days
-        )
-
-    d = {
-        "date": pd.to_datetime(date_list),
-        "transmission_reduction": tr_reduc,
-        "cocooning": cocoon_reduc,
-    }
-    df_transmission = pd.DataFrame(data=d)
-
-    return df_transmission
-
-
-def save_output(transmission, instance):
-    file_path = instance.path_to_data / "transmission_lsq_estimated_data.csv"
-    transmission.to_csv(file_path, index=False)
-
-
-def residual_error(x_variables, **kwargs):
-    change_dates = kwargs["change_dates"]
-    city = kwargs["city"]
-    vaccine_data = kwargs["vaccine_data"]
-
-    t_start = kwargs["t_start"]
-    t_end = kwargs["t_end"]
-    print(t_end)
-    w_ih = kwargs["w_ih"]
-    w_icu = kwargs["w_icu"]
-    w_iyih = kwargs["w_iyih"]
-    w_d = kwargs["w_d"]
-    w_iyd = kwargs["w_iyd"]
-    #############Change the transmission reduction and cocconing accordingly
-    if city.city == "austin":
-        beta = [
-            x_variables[1],
-            x_variables[2],
-            x_variables[3],
-        ]
-
-        cocoon = [
-            x_variables[4],
-            x_variables[5],
-            x_variables[6],
-        ]
-        # beta = [ 0.052257,
-        #         0.787752,
-        #         0.641986,
-        #         0.827015,
-        #         0.778334,
-        #         0.752980,
-        #         0.674321,
-        #         0.801538,
-        #         0.811144,
-        #         0.6849,
-        #         0.5551,
-        #         0.6446,
-        #         0.6869,
-        #         0.7186,
-        #         x_variables[5],
-        #         x_variables[6],
-        #         x_variables[7]]
-
-        # cocoon = [0,
-        #         0.787752,
-        #         0.787752,
-        #         0.827015,
-        #         0.827015,
-        #         0.787752,
-        #         0.827015,
-        #         0.801538,
-        #         0.811144,
-        #         0.6849,
-        #         0.5551,
-        #         0.6446,
-        #         0.6869,
-        #         0.7186,
-        #         x_variables[5],
-        #         x_variables[6],
-        #         x_variables[7]]
-    elif city.city == "cook":
-        beta = [
-            x_variables[0],
-            x_variables[1],
-            x_variables[2],
-            x_variables[3],
-        ]
-
-        cocoon = [
-            x_variables[4],
-            x_variables[5],
-            x_variables[6],
-            x_variables[7],
-        ]
-    tr_reduc = []
-    date_list = []
-    cocoon_reduc = []
-    for idx in range(len(change_dates[:-1])):
-        tr_reduc.extend([beta[idx]] * (change_dates[idx + 1] - change_dates[idx]).days)
-        date_list.extend(
-            [
-                str(change_dates[idx] + dt.timedelta(days=x))
-                for x in range((change_dates[idx + 1] - change_dates[idx]).days)
-            ]
-        )
-        cocoon_reduc.extend(
-            [cocoon[idx]] * (change_dates[idx + 1] - change_dates[idx]).days
-        )
-
-    nodaysrem = (city.end_date.date() - change_dates[-1]).days
-    date_list.extend(
-        [str(change_dates[-1] + dt.timedelta(days=x)) for x in range(nodaysrem)]
-    )
-    tr_reduc.extend([beta[0]] * nodaysrem)
-    cocoon_reduc.extend([cocoon[0]] * nodaysrem)
-
-    d = {"date": pd.to_datetime(date_list), "transmission_reduction": tr_reduc}
-    df_transmission = pd.DataFrame(data=d)
-    transmission_reduction = [
-        (d, tr)
-        for (d, tr) in zip(
-            df_transmission["date"], df_transmission["transmission_reduction"]
-        )
-    ]
-    city.cal.load_fixed_transmission_reduction(transmission_reduction)
-
-    d = {"date": pd.to_datetime(date_list), "cocooning": cocoon_reduc}
-    df_cocooning = pd.DataFrame(data=d)
-    cocooning = [
-        (d, c) for (d, c) in zip(df_cocooning["date"], df_cocooning["cocooning"])
-    ]
-    city.cal.load_fixed_cocooning(cocooning)
-    #############
-    # logger.info(f'beta: {str(beta)}')
-
-    # Define additional variables included in the fit
-    if city.city == "cook":
-        # city.epi.alpha1 = x_variables[0]
-        # city.epi.alpha2 = x_variables[1]
-        # city.epi.alpha3 = x_variables[2]
-        # city.epi.alpha4 = x_variables[3]
-        # city.base_epi.rIH = x_variables[0]
-        pass
-        # city.epi.immune_escape_rate = x_variables[4]
-    elif city.city == "austin":
-        # city.base_epi.alpha1_omic = x_variables[0]
-        # city.base_epi.alpha2_omic = x_variables[1]
-        # city.base_epi.alpha3_omic = x_variables[2]
-        # city.base_epi.alpha4_omic = x_variables[3]
-        # city.base_epi.immune_escape_rate = x_variables[4]
-        city.base_epi.rIH = x_variables[0]
-    print("new value: ", x_variables)
-
-    rep = run_deterministic_path(city, vaccine_data)
-    rep.simulate_time_period(t_end)
-
-    city.epi_rand = rep.epi_rand
-
-    real_hosp_total = city.real_hosp[t_start: t_end + 1]
-    real_hosp_icu = city.real_hosp_icu[t_start: t_end + 1]
-    real_hosp_ad = city.real_hosp_ad[t_start: t_end + 1]
-    real_death_total = city.real_death_total[t_start: t_end + 1]
-    real_death_hosp = city.real_death_hosp[t_start: t_end + 1]
-
-    hosp_benchmark = None
-    real_hosp = [a_i - b_i for a_i, b_i in zip(real_hosp_total, real_hosp_icu)]
-    print(len(real_hosp))
-
-    hosp_benchmark = [rep.IH_history[t].sum() for t in range(t_start, t_end + 1)]
-    residual_error_IH = [a_i - b_i for a_i, b_i in zip(real_hosp, hosp_benchmark)]
-    print(len(residual_error_IH))
-    icu_benchmark = [rep.ICU_history[t].sum() for t in range(t_start, t_end + 1)]
-    residual_error_ICU = [
-        w_ih * (a_i - b_i) for a_i, b_i in zip(real_hosp_icu, icu_benchmark)
-    ]
-    residual_error_ICU = [element * w_icu for element in residual_error_ICU]
-    residual_error_IH.extend(residual_error_ICU)
-
-    daily_ad_benchmark = [rep.ToIHT_history[t].sum() for t in range(t_start, t_end)]
-    print("hospital admission: ", sum(daily_ad_benchmark))
-    residual_error_IYIH = [
-        a_i - b_i for a_i, b_i in zip(real_hosp_ad, daily_ad_benchmark)
-    ]
-    residual_error_IYIH = [element * w_iyih for element in residual_error_IYIH]
-    residual_error_IH.extend(residual_error_IYIH)
-
-    daily_death_benchmark = [
-        rep.D_history[t + 1].sum() - rep.D_history[t].sum()
-        for t in range(t_start, t_end)
-    ]
-    daily_death_benchmark.insert(0, 0)
-    daily_death_benchmark = [rep.ToICUD_history[t].sum() for t in range(t_start, t_end)]
-    daily_death_benchmark.insert(0, 0)
-    residual_error_death = [
-        a_i - b_i for a_i, b_i in zip(real_death_hosp, daily_death_benchmark)
-    ]
-    residual_error_death = [element * w_d for element in residual_error_death]
-    residual_error_IH.extend(residual_error_death)
-
-    real_toIYD = [a_i - b_i for a_i, b_i in zip(real_death_total, real_death_hosp)]
-    daily_toIYD_benchmark = [rep.ToIYD_history[t].sum() for t in range(t_start, t_end)]
-    daily_death_benchmark.insert(0, 0)
-    residual_error_death = [
-        a_i - b_i for a_i, b_i in zip(real_toIYD, daily_toIYD_benchmark)
-    ]
-    residual_error_death = [element * w_iyd for element in residual_error_death]
-    residual_error_IH.extend(residual_error_death)
-
-    # breakpoint()
-    # print('residual error:', residual_error_IH)
-    return residual_error_IH
-
-
-def least_squares_fit(initial_guess, x_bound, kwargs):
-    # Function that runs the least squares fit
-    result = least_squares(
-        residual_error,
-        initial_guess,
-        bounds=x_bound,
-        method="trf",
-        verbose=2,
-        kwargs=kwargs,
-    )
-    return result
+        df_transmission = pd.DataFrame(data=d)
+        return df_transmission

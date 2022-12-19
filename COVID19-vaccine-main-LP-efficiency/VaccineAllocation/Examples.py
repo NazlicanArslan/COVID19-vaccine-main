@@ -339,3 +339,11 @@ equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-
 ctp = CDCTierPolicy(austin, tiers, case_threshold, hosp_adm_thresholds, staffed_thresholds)
 
 rep = SimReplication(austin, vaccines, ctp, -1)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# Example D: Parameter fitting
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# ToDo: I am not very happy with the parameter tuning file and I'll update it.
+# But here is an example of parameter fitting:
+
+

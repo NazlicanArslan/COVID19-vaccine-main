@@ -37,7 +37,7 @@ class SimReplication:
         self.rng_seed = rng_seed
 
         self.step_size = self.instance.config["step_size"]
-        self.t_historical_data_end = len(self.instance.real_hosp)
+        self.t_historical_data_end = len(self.instance.real_IH_history)
 
         # A is the number of age groups
         # L is the number of risk groups
@@ -54,13 +54,19 @@ class SimReplication:
         self.init_vaccine_groups()
 
         # Initialize data structures to track ICU, IH, ToIHT, ToIY
-        self.ICU_history = [np.zeros((A, L))]
-        self.IH_history = [np.zeros((A, L))]
-        self.D_history = [np.zeros((A, L))]
-        self.ToIHT_history = []
-        self.ToIY_history = []
-        self.ToICUD_history = []
-        self.ToIYD_history = []
+        # These statistics or data we look at changes a lot over time
+        # better to keep them in a list to modify.
+        self.history_vars = ("ICU",
+                             "IH",
+                             "D",
+                             "R",
+                             "ToIHT",
+                             "ToIY",
+                             "ToICUD",
+                             "ToIYD")
+
+        for attribute in self.history_vars:
+            setattr(self, f"{attribute}_history", [])
 
         # The next t that is simulated (automatically gets updated after simulation)
         # This instance has simulated up to but not including time next_t
@@ -321,14 +327,8 @@ class SimReplication:
                     sum_across_vaccine_groups += getattr(v_group, attribute)
                 setattr(self, attribute, sum_across_vaccine_groups)
 
-            self.ICU_history.append(self.ICU)
-            self.IH_history.append(self.IH)
-            self.D_history.append(self.D)
-
-            self.ToIHT_history.append(self.ToIHT)
-            self.ToIY_history.append(self.ToIY)
-            self.ToICUD_history.append(self.ToICUD)
-            self.ToIYD_history.append(self.ToIYD)
+            for attribute in self.history_vars:
+                getattr(self, f"{attribute}_history").append(getattr(self, attribute))
 
             total_imbalance = np.sum(
                 self.S
@@ -773,11 +773,8 @@ class SimReplication:
 
         self.init_vaccine_groups()
 
-        self.ICU_history = [np.zeros((A, L))]
-        self.IH_history = [np.zeros((A, L))]
-
-        self.ToIHT_history = []
-        self.ToIY_history = []
+        for attribute in self.history_vars:
+            setattr(self, f"{attribute}_history", [])
 
         self.next_t = 0
 
