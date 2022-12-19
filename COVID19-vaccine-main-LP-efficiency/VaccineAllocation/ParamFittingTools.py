@@ -112,7 +112,7 @@ class ParameterFitting:
             if hasattr(self.city.base_epi, var):
                 setattr(self.city.base_epi, var, x_variables[idx])
             elif var == "transmission_reduction":
-                tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables)
+                tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables[idx:])
                 df_transmission = self.extend_transmission_reduction(tr_reduc, cocoon_reduc)
                 transmission_reduction = [
                     (d, tr)
