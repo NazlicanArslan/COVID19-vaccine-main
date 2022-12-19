@@ -168,8 +168,6 @@ class ParameterFitting:
     def extend_transmission_reduction(self,  tr_reduc, cocoon_reduc):
         """
         Extend the transmission reduction into a dataframe with the corresponding dates.
-        :param x_variables:
-        :return:
         """
         change_dates = self.change_dates
         date_list = []
