@@ -137,11 +137,10 @@ class ParameterFitting:
 
     def create_transmission_reduction(self, x_variables):
         """
-                If we are optimizing the transmission reduction values convert the x_variables
-                into transmission reduction list.
-                :return:
-                """
-        change_dates = self.change_dates
+        If we are optimizing the transmission reduction values convert the x_variables
+        into transmission reduction list.
+        :return:
+        """
         i = 0
         tr_reduc = []
         for tr in self.transmission_reduction:
@@ -162,6 +161,11 @@ class ParameterFitting:
         return tr_reduc, cocoon_reduc
 
     def extend_transmission_reduction(self, x_variables):
+        """
+        Extend the transmission reduction into a dataframe with the corresponding dates.
+        :param x_variables:
+        :return:
+        """
         tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables)
         change_dates = self.change_dates
         date_list = []
