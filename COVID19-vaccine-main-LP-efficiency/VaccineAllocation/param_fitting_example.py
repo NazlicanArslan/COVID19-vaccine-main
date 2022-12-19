@@ -141,3 +141,4 @@ param_fitting = ParameterFitting(austin,
                                  transmission_reduction,
                                  cocoon)
 solution = param_fitting.run_fit()
+

@@ -71,6 +71,10 @@ class ParameterFitting:
         for idx, var in enumerate(self.variables):
             if var == "transmission_reduction":
                 tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables[idx:])
+                df_transmission = self.extend_transmission_reduction(tr_reduc, cocoon_reduc)
+                # save them into a csv file:
+                file_path = self.city.path_to_data / "transmission_lsq_estimated_data.csv"
+                df_transmission.to_csv(file_path, index=False)
                 end_date = []
                 for date in self.change_dates[1:]:
                     end_date.append(str(date - dt.timedelta(days=1)))
@@ -108,7 +112,8 @@ class ParameterFitting:
             if hasattr(self.city.base_epi, var):
                 setattr(self.city.base_epi, var, x_variables[idx])
             elif var == "transmission_reduction":
-                df_transmission = self.extend_transmission_reduction(x_variables[idx:])
+                tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables)
+                df_transmission = self.extend_transmission_reduction(tr_reduc, cocoon_reduc)
                 transmission_reduction = [
                     (d, tr)
                     for (d, tr) in zip(
@@ -160,13 +165,12 @@ class ParameterFitting:
                 cocoon_reduc.append(tr)
         return tr_reduc, cocoon_reduc
 
-    def extend_transmission_reduction(self, x_variables):
+    def extend_transmission_reduction(self,  tr_reduc, cocoon_reduc):
         """
         Extend the transmission reduction into a dataframe with the corresponding dates.
         :param x_variables:
         :return:
         """
-        tr_reduc, cocoon_reduc = self.create_transmission_reduction(x_variables)
         change_dates = self.change_dates
         date_list = []
         tr_reduc_extended, cocoon_reduc_extended = [], []
