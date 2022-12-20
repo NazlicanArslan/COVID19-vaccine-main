@@ -130,6 +130,8 @@ class City:
     ):
         self.city = city
         self.path_to_data = base_path / "instances" / f"{city}"
+        # Extra folder to store the json files for inputting outputting simulation data:
+        self.path_to_input_output = base_path / "input_output_folder" / f"{city}"
 
         with open(str(self.path_to_data / config_filename), "r") as input_file:
             self.config = json.load(input_file)

@@ -24,9 +24,10 @@ import numpy as np
 from SimObjects import MultiTierPolicy
 from DataObjects import City, TierInfo, Vaccine
 from SimModel import SimReplication
-from InputOutputTools import import_rep_from_json
+from InputOutputTools import import_rep_from_json, export_rep_to_json
 import copy
 import itertools
+
 
 ###############################################################################
 
@@ -39,13 +40,13 @@ import itertools
 
 
 def get_sample_paths(
-    city,
-    vaccine_data,
-    rsq_cutoff,
-    goal_num_good_reps,
-    processor_rank=0,
-    seed_assignment_func=(lambda rank: rank),
-    timepoints=(25, 100, 200, 400, 783),
+        city,
+        vaccine_data,
+        rsq_cutoff,
+        goal_num_good_reps,
+        processor_rank=0,
+        timepoints=(25, 100, 200, 400, 783),
+        seed_assignment_func=(lambda rank: rank),
 ):
     """
     This function uses an accept-reject procedure to
@@ -129,19 +130,19 @@ def get_sample_paths(
 
         # If the sample path's R-squared is above rsq_cutoff
         #   at all timepoints, we accept it
-        if valid == True:
+        if valid:
             num_good_reps += 1
             all_rsq.append(rsq)
             identifier = str(processor_rank) + "_" + str(num_good_reps)
             export_rep_to_json(
                 rep,
-                identifier + "_sim.json",
-                identifier + "_v0.json",
-                identifier + "_v1.json",
-                identifier + "_v2.json",
-                identifier + "_v3.json",
+                city.path_to_input_output / (identifier + "_sim.json"),
+                city.path_to_input_output / (identifier + "_v0.json"),
+                city.path_to_input_output / (identifier + "_v1.json"),
+                city.path_to_input_output / (identifier + "_v2.json"),
+                city.path_to_input_output / (identifier + "_v3.json"),
                 None,
-                identifier + "_epi_params.json",
+                city.path_to_input_output / (identifier + "_epi_params.json"),
             )
 
         # Internally save the state of the random number generator
@@ -218,16 +219,16 @@ def thresholds_generator(stage2_info, stage3_info, stage4_info, stage5_info):
 
 
 def evaluate_policies_on_sample_paths(
-    city,
-    tiers,
-    vaccines,
-    thresholds_array,
-    end_time,
-    RNG,
-    num_reps,
-    base_filename,
-    processor_rank,
-    processor_count_total,
+        city,
+        tiers,
+        vaccines,
+        thresholds_array,
+        end_time,
+        RNG,
+        num_reps,
+        base_filename,
+        processor_rank,
+        processor_count_total,
 ):
     """
     Creates a MultiTierPolicy object for each threshold in
@@ -308,7 +309,7 @@ def evaluate_policies_on_sample_paths(
         )
     else:
         start_point = (min_num_policies_per_processor + 1) * leftover_num_policies + (
-            processor_rank - leftover_num_policies
+                processor_rank - leftover_num_policies
         ) * min_num_policies_per_processor
         policies_ix_processor = np.arange(
             start_point, start_point + min_num_policies_per_processor
