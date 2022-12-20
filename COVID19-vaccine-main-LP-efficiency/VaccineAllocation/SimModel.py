@@ -257,7 +257,7 @@ class SimReplication:
         :return: [float] current R-squared value
         """
 
-        f_benchmark = self.instance.real_hosp
+        f_benchmark = self.instance.real_IH_history
 
         IH_sim = np.array(self.ICU_history) + np.array(self.IH_history)
         IH_sim = IH_sim.sum(axis=(2, 1))
