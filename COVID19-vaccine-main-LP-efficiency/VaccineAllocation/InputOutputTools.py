@@ -111,12 +111,12 @@ SimReplication_IO_arrays_var_names = (
 
 # List of names of VaccineGroup attributes to be serialized as a .json file
 VaccineGroup_IO_var_names = (
-    "v_beta_reduct",
-    "v_tau_reduct",
-    "v_beta_reduct_delta",
-    "v_tau_reduct_delta",
-    "v_tau_reduct_omicron",
-) + SimReplication_IO_arrays_var_names
+                                "v_beta_reduct",
+                                "v_tau_reduct",
+                                "v_beta_reduct_delta",
+                                "v_tau_reduct_delta",
+                                "v_tau_reduct_omicron",
+                            ) + SimReplication_IO_arrays_var_names
 
 # List of names of VaccineGroup attributes that are arrays
 VaccineGroup_IO_arrays_var_names = SimReplication_IO_arrays_var_names
@@ -132,18 +132,20 @@ MultiTierPolicy_IO_var_names = (
     "surge_history"
 )
 
+plot_var_names = ["ICU_history", "ToIY_history", "ToIHT_history", "IH_history"]
+
 ###############################################################################
 
 
 def import_rep_from_json(
-    sim_rep,
-    sim_rep_filename,
-    vaccine_group_v0_filename,
-    vaccine_group_v1_filename,
-    vaccine_group_v2_filename,
-    vaccine_group_v3_filename,
-    multi_tier_policy_filename=None,
-    random_params_filename=None,
+        sim_rep,
+        sim_rep_filename,
+        vaccine_group_v0_filename,
+        vaccine_group_v1_filename,
+        vaccine_group_v2_filename,
+        vaccine_group_v3_filename,
+        multi_tier_policy_filename=None,
+        random_params_filename=None,
 ):
     """
     Modifies a SimReplication object sim_rep in place to match the
@@ -212,7 +214,6 @@ def import_rep_from_json(
 
     # (Optional) update epidemiological parameters
     if random_params_filename is not None:
-
         # Create a copy of the base epi parameters that do not change
         #   across simulation replications
         # Load randomly sampled epi parameters
@@ -254,14 +255,14 @@ def load_vars_from_dict(simulation_object, loaded_dict, keys_to_convert_to_array
 
 
 def export_rep_to_json(
-    sim_rep,
-    sim_rep_filename,
-    vaccine_group_v0_filename,
-    vaccine_group_v1_filename,
-    vaccine_group_v2_filename,
-    vaccine_group_v3_filename,
-    multi_tier_policy_filename=None,
-    random_params_filename=None,
+        sim_rep,
+        sim_rep_filename,
+        vaccine_group_v0_filename,
+        vaccine_group_v1_filename,
+        vaccine_group_v2_filename,
+        vaccine_group_v3_filename,
+        multi_tier_policy_filename=None,
+        random_params_filename=None,
 ):
     """
     Does not modify any simulation objects. Exports key sim_rep attributes,
@@ -297,7 +298,8 @@ def export_rep_to_json(
     d = {}
     for k in SimReplication_IO_var_names:
         if k in SimReplication_IO_list_of_arrays_var_names:
-            list_of_lists = [matrix.tolist() for matrix in getattr(sim_rep, k)]
+            list_of_lists = [matrix.tolist() if type(matrix) == np.ndarray else matrix for matrix in
+                             getattr(sim_rep, k)]
             d[k] = list_of_lists
         elif k in SimReplication_IO_arrays_var_names:
             d[k] = getattr(sim_rep, k).tolist()
@@ -338,3 +340,41 @@ def export_rep_to_json(
             if isinstance(d[k], np.ndarray):
                 d[k] = d[k].tolist()
         json.dump(d, open(random_params_filename, "w"))
+
+
+def import_stoch_reps_for_reporting(seeds: list, num_reps: int, instance: object):
+    """
+    Import simulation results for each sample paths and combine them in a list.
+    The resulting outputs used for plotting and calculating key statistics over all sample paths.
+    seeds and num_reps are used to define the filename where the simulation results are stored.
+    :param seeds: list of seeds used in simulation.
+    :param num_reps: number of replication from each seeds.
+    :param instance:
+    :return: list of simulation outputs and policy data for all the sample paths.
+    """
+    sim_outputs = {}
+    for var in SimReplication_IO_list_of_arrays_var_names:
+        sim_outputs[var] = []
+    policy_outputs = {}
+    for i in seeds:
+        for j in range(num_reps):
+            filename = f"{instance.path_to_input_output}/{i}_{j + 1}_sim_updated.json"
+            with open(filename) as file:
+                data = json.load(file)
+                for var in plot_var_names:
+                    if var in SimReplication_IO_list_of_arrays_var_names:
+                        sim_outputs[var].append(data[var])
+                    else:
+                        print('The data is not outputted')
+                        pass
+
+            policy_filename = f"{instance.path_to_input_output}/{i}_{j + 1}_policy.json"
+            with open(policy_filename) as file:
+                policy_data = json.load(file)
+                for key, val in policy_data.items():
+                    if key not in policy_outputs.keys():
+                        policy_outputs[key] = [val]
+                    else:
+                        policy_outputs[key].append(val)
+
+    return sim_outputs, policy_outputs

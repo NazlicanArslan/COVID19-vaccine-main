@@ -88,7 +88,6 @@ class CDCTierPolicy:
         if self.tier_history is None:
             self.tier_history = [None for i in range(t)]
             self.surge_history = [None for i in range(t)]
-
         if len(self.tier_history) > t:
             return
 

@@ -308,7 +308,6 @@ class SimReplication:
         """
 
         time_start = self.next_t
-
         for t in range(time_start, time_end):
 
             self.next_t += 1
@@ -358,7 +357,6 @@ class SimReplication:
         t = t_date
 
         epi = copy.deepcopy(self.epi_rand)
-
         if self.instance.cal.fixed_transmission_reduction[t] is not None:
             # We can fix the transmission reduction as part of projections.
             # It is better to keep real historical data separate from the tiers.

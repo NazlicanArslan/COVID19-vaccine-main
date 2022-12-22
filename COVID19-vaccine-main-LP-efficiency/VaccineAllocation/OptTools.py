@@ -366,3 +366,58 @@ def evaluate_policies_on_sample_paths(
             np.array(feasibility_data),
             delimiter=",",
         )
+
+
+def evaluate_single_policy_on_sample_path(city: object,
+                                          vaccines: object,
+                                          policy: object,
+                                          end_time: int,
+                                          seed: int,
+                                          num_reps: int,
+                                          base_filename: str):
+    """
+    Creates a MultiTierPolicy object for a single tier policy. Simulates this
+    policy starting from pre-saved sample paths up to end_time. This function is used
+    do projections or retrospective analysis with a single given staged-alert policy
+    and creating data for plotting. This is not used for optimization.
+    """
+
+    # Iterate through each replication
+    for rep in range(num_reps):
+        # Load the sample path from .json files for each replication
+        base_json_filename = base_filename + str(rep + 1) + "_"
+        base_rep = SimReplication(city, vaccines, None, 1)
+        import_rep_from_json(base_rep, base_json_filename + "sim.json",
+                             base_json_filename + "v0.json",
+                             base_json_filename + "v1.json",
+                             base_json_filename + "v2.json",
+                             base_json_filename + "v3.json",
+                             None,
+                             base_json_filename + "epi_params.json")
+        if rep == 0:
+            base_rep.rng = np.random.RandomState(seed)
+        else:
+            base_rep.rng = next_rng
+
+        base_rep.policy = policy
+
+        base_rep.simulate_time_period(end_time)
+        # Internally save the state of the random number generator
+        #   to hand to the next sample path
+        next_rng = base_rep.rng
+        # Save results
+        export_rep_to_json(
+            base_rep,
+            base_json_filename + "sim_updated.json",
+            base_json_filename + "v0_scratch.json",
+            base_json_filename + "v1_scratch.json",
+            base_json_filename + "v2_scratch.json",
+            base_json_filename + "v3_scratch.json",
+            base_json_filename + "policy.json"
+        )
+
+        # Clear the policy and simulation replication history
+        base_rep.policy.reset()
+        base_rep.reset()
+
+
