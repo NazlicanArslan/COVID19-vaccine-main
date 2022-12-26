@@ -39,11 +39,11 @@ time_end = dt.datetime(2020, 4, 30)
 seeds = [1, 2]
 num_reps = 2
 if __name__ == '__main__':
-    for i in seeds:
-        p = mp.Process(target=get_sample_paths, args=(austin, vaccines, 0.75, num_reps, i, time_points))
-        p.start()
-    for i in range(2):
-        p.join()
+    # for i in seeds:
+    #     p = mp.Process(target=get_sample_paths, args=(austin, vaccines, 0.75, num_reps, i, time_points))
+    #     p.start()
+    # for i in range(2):
+    #     p.join()
 
     case_threshold = 200
     hosp_adm_thresholds = {"non_surge": (-1, -1, 10, 20, 20), "surge": (-1, -1, -1, 10, 10)}
@@ -51,13 +51,13 @@ if __name__ == '__main__':
     ctp = CDCTierPolicy(austin, tiers, case_threshold, hosp_adm_thresholds, staffed_thresholds)
     new_seeds = [3, 4]
     end_time = austin.cal.calendar.index(dt.datetime(2020, 8, 31))
-    for i in range(len(seeds)):
-        base_filename = f"{austin.path_to_input_output}/{seeds[i]}_"
-        p = mp.Process(target=evaluate_single_policy_on_sample_path,
-                       args=(austin, vaccines, ctp, end_time, new_seeds[i], num_reps, base_filename))
-        p.start()
-    for i in range(2):
-        p.join()
+    # for i in range(len(seeds)):
+    #     base_filename = f"{austin.path_to_input_output}/{seeds[i]}_"
+    #     p = mp.Process(target=evaluate_single_policy_on_sample_path,
+    #                    args=(austin, vaccines, ctp, end_time, new_seeds[i], num_reps, base_filename))
+    #     p.start()
+    # for i in range(2):
+    #     p.join()
 
     real_history_end_date = dt.datetime(2020, 5, 1)
     equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}

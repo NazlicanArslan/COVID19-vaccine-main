@@ -93,7 +93,7 @@ class Plot:
         # Plot styling:
         # Axis limits:
         self.ax1.set_ylim(0, y_lim[self.var])
-        self.policy_ax.set_ylim(0, 1)
+        self.policy_ax.set_ylim(0, y_lim[self.var])
         self.ax1.set_ylabel(compartment_names[self.var])
         self.actions_ax.set_xlim(0, self.T)
         self.set_x_axis()
@@ -127,7 +127,7 @@ class Plot:
             percent = 1
         n_day = self.instance.config["moving_avg_len"]
         self.sim_data = [[s[i: min(i + n_day, self.T)].mean() / percent for i in
-                         range(self.T)] for s in self.sim_data]
+                          range(self.T)] for s in self.sim_data]
 
         if self.real_data is not None:
             real_data = np.array(self.real_data)
@@ -142,7 +142,7 @@ class Plot:
         n_day = self.instance.config["moving_avg_len"]
         total_population = np.sum(self.instance.N, axis=(0, 1))
         self.sim_data = [[s[i: min(i + n_day, self.T)].sum() * 100000 / total_population
-                         for i in range(self.T)] for s in self.sim_data]
+                          for i in range(self.T)] for s in self.sim_data]
 
         if self.real_data is not None:
             real_data = np.array(self.real_data[0:self.T_real])
@@ -223,8 +223,8 @@ class Plot:
             u_ub = thresholds[id_tr + 1] if id_tr + 1 < len(thresholds) else y_lim[self.var]
             if u_lb >= -1 and u_ub >= 0:
                 self.policy_ax.fill_between(range(self.T_real, self.T + 1),
-                                            u_lb / y_lim[self.var],
-                                            u_ub / y_lim[self.var],
+                                            u_lb,
+                                            u_ub,
                                             color=u_color,
                                             alpha=u_alpha,
                                             linewidth=0.0,
@@ -250,8 +250,8 @@ class Plot:
                 u_ub = thresholds[state][id_tr + 1] if id_tr + 1 < len(thresholds[state]) else y_lim[self.var]
                 if u_lb >= -1 and u_ub >= 0:
                     self.policy_ax.fill_between(range(self.T_real, self.T),
-                                                u_lb / y_lim[self.var],
-                                                u_ub / y_lim[self.var],
+                                                u_lb,
+                                                u_ub,
                                                 color=u_color,
                                                 alpha=u_alpha,
                                                 linewidth=0.0,
@@ -276,21 +276,31 @@ class Plot:
             u_color = tier_colors[u]
             u_alpha = 0.6
             fill = np.array(tier_history[self.central_path][self.T_real:self.T]) == u
-            fill = [True if fill[i] or fill[i-1] else False for i in range(len(fill))]
+            fill = [True if fill[i] or fill[i - 1] else False for i in range(len(fill))]
             self.policy_ax.fill_between(range(self.T_real, self.T),
                                         0,
-                                        1,
+                                        y_lim[self.var],
                                         where=fill,
                                         color=u_color,
                                         alpha=u_alpha,
                                         linewidth=0)
         self.save_plot()
 
-    def dali_plot(self):
+    def dali_plot(self, tier_history, tier_colors):
         """
         Plot the tier history colors of different sample paths. I'll implement this plot when I moved to plotting
         multiple sample paths.
         :return:
         """
-        pass
-        # TODO: integrate the code for this later.
+        bottom_tier = 0
+        for u in range(len(tier_colors)):
+            color_fill = (sum(np.array(t[self.T_real:self.T]) == u for t in tier_history) / len(tier_history)) * y_lim[self.var]
+            self.policy_ax.bar(range(self.T_real, self.T),
+                               color_fill,
+                               color=tier_colors[u],
+                               bottom=bottom_tier,
+                               width=1,
+                               alpha=0.6,
+                               linewidth=0)
+            bottom_tier += np.array(color_fill)
+        self.save_plot()

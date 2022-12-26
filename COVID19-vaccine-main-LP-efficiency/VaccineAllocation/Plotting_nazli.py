@@ -22,7 +22,7 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
 
         if key == "ICU_history":
             plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
+            plot.dali_plot(policy_outputs["tier_history"], tier_colors)
 
         elif key == "ToIHT_history":
             plot = Plot(instance, real_history_end_date, real_data, val, key, color=('k', 'silver'))
@@ -57,12 +57,6 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
 
             plot = Plot(instance, real_history_end_date, real_data, val, key)
             plot.vertical_plot(policy_outputs["surge_history"], surge_colors)
-
-            # plot = Plot(instance, real_history_end_date, real_data, val, key)
-            # plot.changing_horizontal_plot(policy_outputs["surge_history"],
-            #                               ["non_surge", "surge"],
-            #                               policy_outputs["hosp_adm_thresholds"][0],
-            #                               tier_colors)
         #
         # elif key == "D_history":
         #     real_data = [
