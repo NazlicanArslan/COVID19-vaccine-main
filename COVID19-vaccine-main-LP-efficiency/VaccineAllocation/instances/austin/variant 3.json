@@ -1,0 +1,100 @@
+{"epi_params": {
+        "immune_evasion": {
+          "delta": {
+            "half_life": 8,
+            "start_date": "2021-06-08 00:00:00",
+            "peak_date":  "2021-06-15 00:00:00"
+          }
+        },
+        "alpha_gamma_ICU": {
+            "delta": 0.266259,
+            "omicron": 1,
+            "new_variant": 1
+        },
+        "alpha_IH": {
+            "delta": 0.8,
+            "omicron": 0.2,
+            "new_variant": 0.2
+        },
+        "alpha_mu_ICU": {
+            "delta": 1.80139,
+            "omicron": 4,
+            "new_variant": 4
+        },
+        "alpha_IYD": {
+            "delta": 0.003,
+            "omicron": 0.002,
+            "new_variant": 0.002
+        },
+        "beta": {
+            "delta": 1.65,
+            "omicron": 2.5575,
+            "new_variant": 2.5575
+        },
+        "sigma_E": {
+            "delta": 1.5,
+            "omicron": 1.5,
+            "new_variant": 1.5
+        },
+        "gamma_ICU0": {
+            "delta": 0.8,
+            "omicron": 1,
+            "new_variant": 1
+        },
+        "mu_ICU0": {
+            "delta": 0.8,
+            "omicron": 1,
+            "new_variant": 1
+        },
+        "YHR": {
+            "delta": 1.8,
+            "omicron": 1.8,
+            "new_variant": 1.8
+        },
+        "YHR_overall": {
+            "delta": 1.8,
+            "omicron": 1.8,
+            "new_variant": 1.8
+        }
+    },
+    "vax_params": {
+        "v_beta_reduct": {
+            "first_dose": {
+                "delta": 0.7,
+                "omicron": 0.7,
+                "new_variant": 0.7
+            },
+            "second_dose": {
+                "delta": 0.75,
+                "omicron": 0.75,
+                "new_variant": 0.75
+            },
+            "waned": {
+                "delta": 0.7,
+                "omicron": 0.7,
+                "new_variant": 0.7
+            }
+        },
+        "v_tau_reduct": {
+            "first_dose": {
+                "delta": 0.85,
+                "omicron": 0.85,
+                "new_variant": 0.85
+            },
+            "second_dose": {
+                "delta": 0.95,
+                "omicron": 0.95,
+                "new_variant": 0.95
+            },
+            "waned": {
+                "delta": 0.85,
+                "omicron": 0.7,
+                "new_variant": 0.7
+            }
+        }
+    }
+}
+
+
+
+

@@ -248,9 +248,6 @@ class VaccineGroup:
         v_name,
         v_beta_reduct,
         v_tau_reduct,
-        v_beta_reduct_delta,
-        v_tau_reduct_delta,
-        v_tau_reduct_omicron,
         instance,
     ):
         """
@@ -270,25 +267,22 @@ class VaccineGroup:
         """
         self.v_beta_reduct = v_beta_reduct
         self.v_tau_reduct = v_tau_reduct
-        self.v_beta_reduct_delta = v_beta_reduct_delta
-        self.v_tau_reduct_delta = v_tau_reduct_delta
-        self.v_tau_reduct_omicron = v_tau_reduct_omicron
         self.v_name = v_name
 
-        if self.v_name == "v_0":
+        if self.v_name == "unvax":
             self.v_in = ()
             self.v_out = ("v_first",)
 
-        elif self.v_name == "v_1":
+        elif self.v_name == "first_dose":
             self.v_in = ("v_first",)
             self.v_out = ("v_second",)
 
-        elif self.v_name == "v_2":
+        elif self.v_name == "second_dose":
             self.v_in = ("v_second", "v_booster")
-            self.v_out = ("v_wane",)
+            self.v_out = ()
 
         else:
-            self.v_in = ("v_wane",)
+            self.v_in = ()
             self.v_out = ("v_booster",)
 
         self.N = instance.N
@@ -328,23 +322,11 @@ class VaccineGroup:
         for attribute in self.state_vars:
             vars(self)["_" + attribute][0] = getattr(self, attribute)
 
-    def delta_update(self, prev):
+    def variant_update(self, params, prev):
         """
-        Update efficacy according to delta variant (VoC) prevelance.
+        Update efficacy according to variant of concern efficacy
         """
-
-        self.v_beta_reduct = (
-            self.v_beta_reduct * (1 - prev) + self.v_beta_reduct_delta * prev
-        )  # decreased efficacy against infection.
-        self.v_tau_reduct = (
-            self.v_tau_reduct * (1 - prev) + self.v_tau_reduct_delta * prev
-        )  # decreased efficacy against symptomatic infection.
-
-    def omicron_update(self, prev):
-        """
-        Update efficacy according to omicron variant (VoC) prevelance.
-        """
-
-        self.v_tau_reduct = (
-            self.v_tau_reduct * (1 - prev) + self.v_tau_reduct_omicron * prev
-        )
+        self.v_beta_reduct = self.v_beta_reduct * (1 - prev) + params[
+            ('v_beta_reduct', self.v_name)]  # efficacy against infection.
+        self.v_tau_reduct = self.v_tau_reduct * (1 - prev) + params[
+            ('v_tau_reduct', self.v_name)]  # efficacy against symptomatic infection.

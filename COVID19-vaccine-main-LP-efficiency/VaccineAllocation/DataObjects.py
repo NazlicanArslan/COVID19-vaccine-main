@@ -1,4 +1,6 @@
 import json
+from math import log
+
 import numpy as np
 import pandas as pd
 import datetime as dt
@@ -118,14 +120,13 @@ class City:
             config_filename,
             calendar_filename,
             setup_filename,
+            variant_filename,
             transmission_filename,
             hospitalization_filename,
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
             death_from_home_filename,
-            delta_prevalence_filename,
-            omicron_prevalence_filename,
             variant_prevalence_filename,
     ):
         self.city = city
@@ -139,14 +140,13 @@ class City:
         self.epi_rand = None
         self.load_data(
             setup_filename,
+            variant_filename,
             calendar_filename,
             hospitalization_filename,
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
             death_from_home_filename,
-            delta_prevalence_filename,
-            omicron_prevalence_filename,
             variant_prevalence_filename,
         )
         self.process_data(transmission_filename)
@@ -154,14 +154,13 @@ class City:
     def load_data(
             self,
             setup_filename,
+            variant_filename,
             calendar_filename,
             hospitalization_filename,
             hosp_icu_filename,
             hosp_admission_filename,
             death_from_hosp_filename,
             death_from_home_filename,
-            delta_prevalence_filename,
-            omicron_prevalence_filename,
             variant_prevalence_filename,
     ):
         """
@@ -238,28 +237,15 @@ class City:
             else None
         )
 
-        df_delta = pd.read_csv(
-            str(self.path_to_data / delta_prevalence_filename),
-            parse_dates=["date"],
-            date_parser=pd.to_datetime,
-        )
-        self.delta_prev = list(df_delta["delta_prev"])
-        self.delta_start = df_delta["date"][0]
-
-        df_omicron = pd.read_csv(
-            str(self.path_to_data / omicron_prevalence_filename),
-            parse_dates=["date"],
-            date_parser=pd.to_datetime,
-        )
-        self.omicron_prev = list(df_omicron["prev"])
-        self.omicron_start = df_omicron["date"][0]
-
+        # Read the combined variant files instead of a separate file for each new variant:
         df_variant = pd.read_csv(
             str(self.path_to_data / variant_prevalence_filename),
             parse_dates=["date"],
             date_parser=pd.to_datetime,
         )
-        self.variant_prev = list(df_variant["prev"])
+        with open(self.path_to_data / variant_filename, "r") as input_file:
+            variant_data = json.load(input_file)
+        self.variant_pool = VariantPool(variant_data, df_variant)
         self.variant_start = df_variant["date"][0]
 
     def read_hosp_related_data(self, hosp_filename):
@@ -397,13 +383,9 @@ class Vaccine:
             booster_allocation_data = None
 
         self.effect_time = vaccine_data["effect_time"]
-        self.waning_time = vaccine_data["waning_time"]
         self.second_dose_time = vaccine_data["second_dose_time"]
         self.beta_reduct = vaccine_data["beta_reduct"]
         self.tau_reduct = vaccine_data["tau_reduct"]
-        self.beta_reduct_delta = vaccine_data["beta_reduct_delta"]
-        self.tau_reduct_delta = vaccine_data["tau_reduct_delta"]
-        self.tau_reduct_omicron = vaccine_data["tau_reduct_omicron"]
         self.instance = instance
 
         self.vaccine_allocation = self.define_supply(
@@ -546,10 +528,7 @@ class Vaccine:
             time + dt.timedelta(days=self.second_dose_time + self.effect_time)
             for time in self.first_dose_time
         ]
-        self.waning_time = [
-            time + dt.timedelta(days=self.waning_time)
-            for time in vaccine_allocation_data["vaccine_time"]
-        ]
+
         self.vaccine_proportion = [
             amount for amount in vaccine_allocation_data["vaccine_amount"]
         ]
@@ -594,8 +573,8 @@ class Vaccine:
                 "within_proportion": within_proportion,
                 "supply": supply_first_dose,
                 "type": "first_dose",
-                "from": "v_0",
-                "to": "v_1",
+                "from": "unvax",
+                "to": "first_dose",
             }
             v_first_allocation.append(allocation_item)
 
@@ -612,34 +591,10 @@ class Vaccine:
                     "within_proportion": within_proportion,
                     "supply": supply_second_dose,
                     "type": "second_dose",
-                    "from": "v_1",
-                    "to": "v_2",
+                    "from": "first_dose",
+                    "to": "second_dose",
                 }
                 v_second_allocation.append(allocation_item)
-
-            # Waning vaccine efficacy:
-            if i < len(self.waning_time):
-                supply_waning = {
-                    "time": self.waning_time[i],
-                    "amount": self.vaccine_proportion[i],
-                    "type": "waning",
-                }
-                allocation_item = {
-                    "assignment": vac_assignment,
-                    "proportion": pro_round,
-                    "within_proportion": within_proportion,
-                    "supply": supply_waning,
-                    "type": "waning",
-                    "from": "v_2",
-                    "to": "v_3",
-                }
-                v_wane_allocation.append(allocation_item)
-
-        age_risk_columns = [
-            column
-            for column in booster_allocation_data.columns
-            if "A" and "R" in column
-        ]
 
         # Fixed booster vaccine allocation:
         if booster_allocation_data is not None:
@@ -672,16 +627,15 @@ class Vaccine:
                     "within_proportion": within_proportion,
                     "supply": supply_booster_dose,
                     "type": "booster_dose",
-                    "from": "v_3",
-                    "to": "v_2",
+                    "from": "waned",
+                    "to": "second_dose",
                 }
                 v_booster_allocation.append(allocation_item)
 
         return {
             "v_first": v_first_allocation,
             "v_second": v_second_allocation,
-            "v_booster": v_booster_allocation,
-            "v_wane": v_wane_allocation,
+            "v_booster": v_booster_allocation
         }
 
 
@@ -783,6 +737,12 @@ class EpiSetup:
         if isinstance(self.etaICU, np.ndarray):
             self.etaICU = self.etaICU.reshape(self.etaICU.size, 1)
             self.etaICU0 = self.etaICU.copy()
+        if isinstance(self.gamma_ICU, np.ndarray):
+            self.gamma_ICU = self.gamma_ICU.reshape(self.gamma_ICU.size, 1)
+            self.gamma_ICU0 = self.gamma_ICU.copy()
+        if isinstance(self.mu_ICU, np.ndarray):
+            self.mu_ICU = self.mu_ICU.reshape(self.mu_ICU.size, 1)
+            self.mu_ICU0 = self.mu_ICU.copy()
 
         self.update_YHR_params()
         self.update_nu_params()
@@ -790,98 +750,25 @@ class EpiSetup:
         # Formerly updated under update_hosp_duration() function in original code
         # See Yang et al. (2021) pg. 9 -- add constant parameters (alphas)
         #   to better estimate durations in ICU and general ward.
-        self.gamma_ICU = self.gamma_ICU0 * (1 + self.alpha1)
-        self.gamma_IH = self.gamma_IH0 * (1 - self.alpha2)
-        self.mu_ICU = self.mu_ICU0 * (1 + self.alpha3)
+        self.gamma_ICU = self.gamma_ICU0 * (1 + self.alpha_gamma_ICU)
+        self.gamma_IH = self.gamma_IH0 * (1 - self.alpha_IH)
+        self.mu_ICU = self.mu_ICU0 * (1 + self.alpha_mu_ICU)
 
-    def delta_update_param(self, prev):
+    def variant_update_param(self, new_params):
         """
-        Update parameters according to delta variant prevalence.
+            Update parameters according to variant prevalence.
+            Combined all variant of concerns: delta, omicron, and a new hypothetical variant.
         """
-
-        E_new = 1 / self.sigma_E - 1.5
-        self.sigma_E = (
-                self.sigma_E * (1 - prev) + (1 / E_new) * prev
-        )  # decreased incubation period.
-
-        # Arslan et al. 2021 -- assume Delta is 1.65 times more transmissible than pre-Delta
-        self.beta = self.beta0 * (1 - prev) + self.beta0 * (1.65) * prev
-
-        # Arslan et al. 2021 -- assume Delta causes 80% more hospitalizations than pre-Delta
-        self.YHR = self.YHR * (1 - prev) + self.YHR * (1.8) * prev
-        self.YHR_overall = (
-                self.YHR_overall * (1 - prev) + self.YHR_overall * (1.8) * prev
-        )
-
+        for (k, v) in new_params.items():
+            if k == "sigma_E":
+                setattr(self, k, v)
+            else:
+                setattr(self, k, v * getattr(self, k))
         self.update_YHR_params()
         self.update_nu_params()
-
-        # Update hospital dynamic parameters:
-        gamma_ICU0 = self.gamma_ICU0
-        mu_ICU0 = self.mu_ICU0
-        gamma_IH0 = self.gamma_IH0
-        # Rate of recovery from ICU -- increases with Delta?
-        self.gamma_ICU = (
-                gamma_ICU0 * (1 + self.alpha1) * (1 - prev)
-                + gamma_ICU0 * 0.65 * (1 + self.alpha1_delta) * prev
-        )
-
-        # Rate of transition from ICU to death -- increases with Delta
-        self.mu_ICU = (
-                mu_ICU0 * (1 + self.alpha3) * (1 - prev)
-                + self.mu_ICU0 * 0.65 * (1 + self.alpha3_delta) * prev
-        )
-
-        # Rate of recovery from IH -- decreases with Delta
-        self.gamma_IH = (
-                gamma_IH0 * (1 - self.alpha2) * (1 - prev)
-                + gamma_IH0 * (1 - self.alpha2_delta) * prev
-        )
-
-        self.alpha4 = self.alpha4_delta * prev + self.alpha4 * (1 - prev)
-
-    def omicron_update_param(self, prev):
-        """
-        Update parameters according omicron.
-        Assume increase in the transmission.
-        The changes in hosp dynamic in Austin right before omicron emerged.
-        """
-        self.beta = (
-                self.beta * (1 - prev) + self.beta * (self.omicron_beta) * prev
-        )  # increased transmission
-
-        self.YHR = self.YHR0 * (1 - prev) + self.YHR0 * 0.9 * prev
-        self.YHR_overall = self.YHR_overall * (1 - prev) + self.YHR_overall * 0.9 * prev
-
-        self.update_YHR_params()
-        self.update_nu_params()
-
-        # Update hospital dynamic parameters:
-        gamma_ICU0 = self.gamma_ICU0
-        mu_ICU0 = self.mu_ICU0
-        gamma_IH0 = self.gamma_IH0
-
-        self.gamma_ICU = gamma_ICU0 * (
-                1 + self.alpha1_omic
-        ) * 1.1 * prev + gamma_ICU0 * 0.65 * (1 + self.alpha1_delta) * (1 - prev)
-
-        self.mu_ICU = mu_ICU0 * (1 + self.alpha3_omic) * prev + mu_ICU0 * 0.65 * (
-                1 + self.alpha3_delta
-        ) * (1 - prev)
-
-        self.gamma_IH = gamma_IH0 * (1 - self.alpha2_omic) * prev + gamma_IH0 * (
-                1 - self.alpha2_delta
-        ) * (1 - prev)
-
-        self.alpha4 = self.alpha4_omic * prev + self.alpha4_delta * (1 - prev)
-
-    def variant_update_param(self, prev):
-        """
-        Assume an imaginary new variant that is more transmissible.
-        """
-        self.beta = (
-                self.beta * (1 - prev) + self.beta * (self.new_variant_beta) * prev
-        )  # increased transmission
+        self.gamma_ICU = self.gamma_ICU0 * (1 + self.alpha_gamma_ICU)
+        self.gamma_IH = self.gamma_IH0 * (1 - self.alpha_IH)
+        self.mu_ICU = self.mu_ICU0 * (1 + self.alpha_mu_ICU)
 
     def update_icu_params(self, rdrate):
         # update the ICU admission parameter HICUR and update nu
@@ -960,12 +847,6 @@ class EpiSetup:
                     * self.HICUR
                     / (self.etaICU + (self.gamma_IH - self.etaICU) * self.HICUR)
             )
-            if isinstance(self.gamma_ICU, np.ndarray):
-                self.gamma_ICU = self.gamma_ICU.reshape(self.gamma_ICU.size, 1)
-                self.gamma_ICU0 = self.gamma_ICU.copy()
-            if isinstance(self.mu_ICU, np.ndarray):
-                self.mu_ICU = self.mu_ICU.reshape(self.mu_ICU.size, 1)
-                self.mu_ICU0 = self.mu_ICU.copy()
             self.nu_ICU = (
                     self.gamma_ICU
                     * self.ICUFR
@@ -1034,6 +915,85 @@ class EpiSetup:
             phi_age_risk[-1, :, :, :] = (1 - cocooning) * phi_age_risk_copy[-1, :, :, :]
         assert (phi_age_risk >= 0).all()
         return phi_age_risk
+
+
+class VariantPool:
+    """
+    A class that contains all the variant of concerns.
+    """
+
+    def __init__(self, variants_data: list, variants_prev: list):
+        """
+        :param variants_data: list of updates for each variant.
+        :param variants_prev: prevalence of each variant of concern.
+        """
+        self.variants_data = variants_data
+        self.variants_prev = variants_prev
+        for (k, v) in self.variants_data['epi_params']["immune_evasion"].items():
+            # calculate the rate of exponential immune evasion according to half-life (median) value:
+            v["immune_evasion_max"] = log(2) / (v["half_life"] * 30) if v["half_life"] != 0 else 0
+            v["start_date"] = dt.datetime.strptime(v["start_date"], datetime_formater)
+            v["peak_date"] = dt.datetime.strptime(v["peak_date"], datetime_formater)
+            v['days'] = (v["peak_date"] - v["start_date"]).days
+
+    def update_params_coef(self, t: int, sigma_E: float):
+        """
+        update epi parameters and vaccine parameters according to prevalence of different variances.
+        :param t: current date
+        :param sigma_E: current sampled sigma_E value in the simulation.
+        :return: new set of params and total variant prev.
+        """
+        new_epi_params_coef = {}
+        new_vax_params = {}
+        for (key, val) in self.variants_data['epi_params'].items():
+            var_prev = sum(self.variants_prev[v][t] for v in val)
+            if key == "sigma_E":
+                # The parameter value of the triangular distribution is shifted with the Delta variant. Instead of
+                # returning a percent increase in the parameter value, directly calculate the new sigma_E.
+                new_epi_params_coef[key] = sum(1 / (1 / sigma_E - val[v]) * self.variants_prev[v][t] for v in val) + (
+                            1 - var_prev) * sigma_E
+            if key == "immune_evasion":
+                pass
+            else:
+                # For other parameters calculate the change in the value as a coefficent:
+                new_epi_params_coef[key] = 1 + sum(self.variants_prev[v][t] * (val[v] - 1) for v in val)
+
+        # Calculate the new vaccine efficacy according to the variant values:
+        for (key, val) in self.variants_data['vax_params'].items():
+            for (k_dose, v_dose) in val.items():
+                new_vax_params[(key, k_dose)] = sum(self.variants_prev[v][t] * v_dose[v] for v in v_dose)
+        return new_epi_params_coef, new_vax_params, var_prev
+
+    def immune_evasion(self, immune_evasion_base: float, t: dt.datetime):
+        """
+        I was planning to read the immune evasion value from the variant csv file, but we decide to run lsq on the
+        immune evasion function, so I am integrating the piecewise linear function into the code.
+
+        We assume the immunity evade with exponential rate.
+        Calculate the changing immune evasion rate according to variant prevalence.
+        Assume that the immune evasion follows a piecewise linear shape.
+        It increases as the prevalence of variant increases and peak
+        and starts to decrease.
+
+        I assume the immune evasion functions of different variants do not overlap.
+
+        half_life: half-life of the vaccine or natural infection induced protection.
+        half_life_base: half-life of base level of immune evasion before the variant
+        start_date: the date the immune evasion starts to increase
+        peak_date: the date the immune evasion reaches the maximum level.
+
+        :param immune_evasion_base: base immune evasion rate before the variant.
+        :param t: current iterate
+        :return: the immune evasion rate for a particular date.
+        """
+        for (k, v) in self.variants_data['epi_params']["immune_evasion"].items():
+            if v["start_date"] <= t <= v["peak_date"]:
+                return (t - v["start_date"]).days * (v["immune_evasion_max"] - immune_evasion_base) / v["days"] + immune_evasion_base
+            elif v["peak_date"] <= t <= v["peak_date"] + dt.timedelta(days=v["days"]):
+                return (v["peak_date"] + dt.timedelta(days=v["days"]) - t).days * (v["immune_evasion_max"] - immune_evasion_base) / v["days"] + immune_evasion_base
+
+        return immune_evasion_base
+        # return self.variants_prev['immune_evasion'][t]
 
 
 class ParamDistribution:
