@@ -275,7 +275,7 @@ rep = SimReplication(austin, vaccines, mtp, 1000)
 InputOutputTools.import_rep_from_json(rep, "sim_rep.json",
                                       "v0.json", "v1.json", "v2.json", "v3.json",
                                       "policy.json", "random_params.json")
-rep.rng = np.random.RandomState(10000)
+rep.rng = np.random.default_rng(10000)
 
 # Now rep.next_time is 800, where we last left off.
 # We can simulate rep.next_time from this point.
@@ -291,11 +291,11 @@ print(rep.compute_cost())
 rep.policy.reset()
 rep = SimReplication(austin, vaccines, mtp, 1000)
 rep.simulate_time_period(800)
-rep.rng = np.random.RandomState(10000)
+rep.rng = np.random.default_rng(10000)
 rep.simulate_time_period(945)
 print(rep.compute_cost())
 
-# Notice the line rep.rng = np.random.RandomState(10000)
+# Notice the line rep.rng = np.random.default_rng(10000)
 #   that is called after we import .json files for time 800
 #   when "externally" starting and stopping and
 #   is called after we simulate to time 800 when
@@ -306,7 +306,7 @@ print(rep.compute_cost())
 # As discussed in Example A, to get perfectly repeatable
 #   results, we need to manage random number generation
 #   carefully. We cannot export the current state
-#   of a random number generator using RandomState.
+#   of a random number generator using np.random.default_rng.
 #   Therefore, to compare results of the "externally stopped"
 #   repl and the "internally stopped" rep for debugging,
 #   we need both replications to resume simulating from

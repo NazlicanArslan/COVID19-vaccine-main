@@ -12,16 +12,12 @@
 # Note that importing / exporting does not work for partial days
 #   (discrete steps within a day), so we assume days are fully completed.
 
-# Note that currently the simulation code uses numpy.random.RandomState
-#   for random number generation, and this is a legacy (deprecated)
-#   implementation.
-# There is currently no way to export or load the state of a random
+#   The code uses numpy.random.default_rng.
+# (Is the following part stil true?) There is currently no way to export or load the state of a random
 #   number generator to or from .json files. However, within a single
 #   Python session on the same computer, the state of a random number generator
 #   can be saved and started from the last saved point.
-# Future versions of the simulation code should use the updated
-#   numpy.random.default_rng and Generator objects in place of
-#   numpy.random.RandomState.
+
 
 # Linda Pei 2022
 

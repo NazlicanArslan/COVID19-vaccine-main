@@ -728,7 +728,7 @@ class EpiSetup:
         Generates random parameters from a given random stream.
         Coupled parameters are updated as well.
         Args:
-            rng (RandomState): a RandomState instance from numpy.
+            rng (np.random.default_rng): a default_rng instance from numpy.
         """
 
         # rng = None  #rng
@@ -1061,7 +1061,7 @@ class ParamDistribution:
         """
         Sample random variable with given distribution name, parameters and dimension.
         Args:
-            rng (np.RandomState): a random stream. If None, det_val is returned.
+            rng (np.random.default_rng): a random stream. If None, det_val is returned.
             dim (int or tuple): dimmention of the parameter (default is 1).
         """
         if rng is not None:

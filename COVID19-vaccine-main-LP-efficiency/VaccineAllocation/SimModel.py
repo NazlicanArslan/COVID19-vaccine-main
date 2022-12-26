@@ -99,7 +99,7 @@ class SimReplication:
 
         if self.rng_seed:
             if self.rng_seed >= 0:
-                self.rng = np.random.RandomState(self.rng_seed)
+                self.rng = np.random.default_rng(self.rng_seed)
             else:
                 self.rng = None
         else:

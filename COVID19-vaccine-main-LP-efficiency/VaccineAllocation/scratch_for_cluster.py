@@ -40,7 +40,7 @@ vaccines = Vaccine(austin,
 
 thresholds_array = thresholds_generator((0,14,1), (0,100,10), (0,100,10), (0,100,20))
 # thresholds_array = [(-1, 1, 10, 100, 200), (-1, 5, 15, 25, 50)]
-rng = np.random.RandomState(100+rank)
+rng = np.random.default_rng(100+rank)
 base_identifier = "0_"
 num_reps = 300
 

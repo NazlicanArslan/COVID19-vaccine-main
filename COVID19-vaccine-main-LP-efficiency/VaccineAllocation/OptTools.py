@@ -277,7 +277,7 @@ def evaluate_policies_on_sample_paths(
     :param end_time: [int] nonnegative integer, time at which to stop
         simulating and evaluating each policy -- must be greater (later than)
         the time at which the sample paths stopped
-    :param RNG: [obj] instance of np.random.RandomState(),
+    :param RNG: [obj] instance of np.random.default_rng(),
         a random number generator
     :param num_reps: [int] number of sample paths to test policies on
     :param base_filename: [str] prefix common to all filenames
@@ -395,7 +395,7 @@ def evaluate_single_policy_on_sample_path(city: object,
                              None,
                              base_json_filename + "epi_params.json")
         if rep == 0:
-            base_rep.rng = np.random.RandomState(seed)
+            base_rep.rng = np.random.default_rng(seed)
         else:
             base_rep.rng = next_rng
 
