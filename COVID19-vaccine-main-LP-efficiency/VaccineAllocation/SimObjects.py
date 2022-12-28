@@ -248,6 +248,7 @@ class VaccineGroup:
         v_name,
         v_beta_reduct,
         v_tau_reduct,
+        v_pi_reduct,
         instance,
     ):
         """
@@ -267,6 +268,7 @@ class VaccineGroup:
         """
         self.v_beta_reduct = v_beta_reduct
         self.v_tau_reduct = v_tau_reduct
+        self.v_pi_reduct = v_pi_reduct
         self.v_name = v_name
 
         if self.v_name == "unvax":
@@ -313,7 +315,7 @@ class VaccineGroup:
             setattr(self, attribute, np.zeros((A, L)))
             setattr(self, "_" + attribute, np.zeros((step_size, A, L)))
 
-        if self.v_name == "v_0":
+        if self.v_name == "unvax":
             # Initial Conditions (assumed)
             self.PY = self.I0
             self.R = 0

@@ -139,10 +139,10 @@ class SimReplication:
     def init_vaccine_groups(self):
         """
         Creates 4 vaccine groups:
-            group 0 / "v_0": unvaccinated
-            group 1 / "v_1": partially vaccinated
-            group 2 / "v_2": fully vaccinated
-            group 3 / "v_3": waning efficacy
+            group 0 / "unvax": unvaccinated
+            group 1 / "first_dose": partially vaccinated
+            group 2 / "second_dose": fully vaccinated
+            group 3 / "waned": waning efficacy
 
         We assume there is one type of vaccine with 2 doses.
         After 1 dose, individuals move from group 0 to 1.
@@ -155,13 +155,14 @@ class SimReplication:
         """
 
         self.vaccine_groups = []
-        self.vaccine_groups.append(VaccineGroup("unvax", 0, 0, self.instance))
+        self.vaccine_groups.append(VaccineGroup("unvax", 0, 0, 0, self.instance))
         for key in self.vaccine.beta_reduct:
             self.vaccine_groups.append(
                 VaccineGroup(
                     key,
                     self.vaccine.beta_reduct[key],
                     self.vaccine.tau_reduct[key],
+                    self.vaccine.pi_reduct[key],
                     self.instance,
                 )
             )
@@ -374,50 +375,11 @@ class SimReplication:
         get_binomial_transition_quantity = self.get_binomial_transition_quantity
 
         rate_E = discrete_approx(epi.sigma_E, step_size)
-        rate_IYR = discrete_approx(
-            np.array(
-                [
-                    [
-                        (1 - epi.pi[a, l]) * epi.gamma_IY * (1 - epi.alpha_IYD)
-                        for l in range(L)
-                    ]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
-        rate_IYD = discrete_approx(
-            np.array(
-                [
-                    [(1 - epi.pi[a, l]) * epi.gamma_IY * epi.alpha_IYD for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
+
 
         rate_IAR = discrete_approx(np.full((A, L), epi.gamma_IA), step_size)
         rate_PAIA = discrete_approx(np.full((A, L), epi.rho_A), step_size)
         rate_PYIY = discrete_approx(np.full((A, L), epi.rho_Y), step_size)
-
-        rate_IYH = discrete_approx(
-            np.array(
-                [
-                    [(epi.pi[a, l]) * epi.Eta[a] * epi.pIH for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
-        rate_IYICU = discrete_approx(
-            np.array(
-                [
-                    [(epi.pi[a, l]) * epi.Eta[a] * (1 - epi.pIH) for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
         rate_IHICU = discrete_approx(epi.nu * epi.etaICU, step_size)
         rate_IHR = discrete_approx((1 - epi.nu) * epi.gamma_IH, step_size)
         rate_ICUD = discrete_approx(epi.nu_ICU * epi.mu_ICU, step_size)
@@ -425,9 +387,6 @@ class SimReplication:
         rate_immune = discrete_approx(immune_evasion, step_size)
 
         start = time.time()
-
-        if t >= 711:  # date corresponding to 02/07/2022
-            rate_immune = discrete_approx(epi.immune_evasion, step_size)
 
         for _t in range(step_size):
             # Dynamics for dS
@@ -503,8 +462,49 @@ class SimReplication:
                 v_groups._IA[_t + 1] = v_groups._IA[_t] + PAIA - IAR
 
                 # Dynamics for IY
+                rate_IYR = discrete_approx(
+                    np.array(
+                        [
+                            [
+                                (1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * (1 - epi.alpha_IYD)
+                                for l in range(L)
+                            ]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+                rate_IYD = discrete_approx(
+                    np.array(
+                        [
+                            [(1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * epi.alpha_IYD for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
                 IYR = get_binomial_transition_quantity(v_groups._IY[_t], rate_IYR)
                 IYD = get_binomial_transition_quantity(v_groups._IY[_t] - IYR, rate_IYD)
+
+                rate_IYH = discrete_approx(
+                    np.array(
+                        [
+                            [(epi.pi[a, l]) * (1 - v_groups.v_pi_reduct) * epi.Eta[a] * epi.pIH for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+                rate_IYICU = discrete_approx(
+                    np.array(
+                        [
+                            [(epi.pi[a, l]) * (1 - v_groups.v_pi_reduct) * epi.Eta[a] * (1 - epi.pIH) for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+
                 v_groups._IYIH[_t] = get_binomial_transition_quantity(
                     v_groups._IY[_t] - IYR - IYD, rate_IYH
                 )
@@ -594,7 +594,7 @@ class SimReplication:
                             ],
                             (A * L, 1),
                         )
-                        if v_groups.v_name == "first_dose":
+                        if v_groups.v_name == "first_dose" and rate_immune > 0:
                             S_out = rate_immune * np.reshape(
                                 self.vaccine.vaccine_allocation[vaccine_type][
                                     event
@@ -643,7 +643,7 @@ class SimReplication:
                             (A * L, 1),
                         )
 
-                        if v_groups.v_name == "second_dose" and v_temp.v_name == "first_dose":
+                        if v_groups.v_name == "second_dose" and v_temp.v_name == "first_dose" and rate_immune > 0:
                             S_in = rate_immune * np.reshape(
                                 self.vaccine.vaccine_allocation[vaccine_type][
                                     event

@@ -386,6 +386,7 @@ class Vaccine:
         self.second_dose_time = vaccine_data["second_dose_time"]
         self.beta_reduct = vaccine_data["beta_reduct"]
         self.tau_reduct = vaccine_data["tau_reduct"]
+        self.pi_reduct = vaccine_data["pi_reduct"]
         self.instance = instance
 
         self.vaccine_allocation = self.define_supply(
@@ -442,7 +443,7 @@ class Vaccine:
         :param total_population: integer, usually N parameter such as instance.N
         :param total_risk_gr: instance.A x instance.L
         :param vaccine_group_name: string of vaccine_group_name (see Vaccine.define_groups())
-            ("v_0", "v_1", "v_2", "v_3")
+             ("unvax", "first_dose", "second_dose", "waned")
         :param v_in: tuple with strings of vaccine_types going "in" to that vaccine group
         :param v_out: tuple with strings of vaccine_types going "out" of that vaccine group
         :param date: datetime object
@@ -503,7 +504,7 @@ class Vaccine:
                             "time"
                         ]
 
-        if vaccine_group_name == "v_0":
+        if vaccine_group_name == "unvax":
             N_eligible = total_population.reshape((total_risk_gr, 1)) - N_out
         else:
             N_eligible = N_in - N_out

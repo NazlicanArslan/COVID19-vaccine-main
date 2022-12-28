@@ -1,5 +1,6 @@
 from pathlib import Path
 import pandas as pd
+import numpy as np
 from Plot_Manager import Plot
 from InputOutputTools import import_stoch_reps_for_reporting
 
@@ -46,6 +47,9 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
                                           policy_outputs["staffed_bed_thresholds"][0],
                                           tier_colors)
 
+            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}", color=('k', 'silver'))
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
+
         elif key == "ToIY_history":
             # ToDo: Fix the data reading part here:
             filename = 'austin_real_case.csv'
@@ -57,14 +61,16 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
 
             plot = Plot(instance, real_history_end_date, real_data, val, key)
             plot.vertical_plot(policy_outputs["surge_history"], surge_colors)
-        #
-        # elif key == "D_history":
-        #     real_data = [
-        #                 ai - bi for (ai, bi) in zip(instance.real_ToIYD_history, instance.real_ToICUD_history)
-        #             ]
-        #     breakpoint()
-        #     plot = Plot(instance, real_history_end_date, real_data, val, key)
-        #     plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
+        elif key == "D_history":
+            real_data = np.cumsum(np.array([ai + bi for (ai, bi) in zip(instance.real_ToIYD_history, instance.real_ToICUD_history)]))
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
+        elif key == "ToIYD_history":
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
+        elif key == "ToICUD_history":
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
 

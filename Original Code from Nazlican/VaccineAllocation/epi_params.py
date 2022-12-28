@@ -182,7 +182,7 @@ class EpiSetup:
                 self.mu_ICU0 = self.mu_ICU.copy()
             self.nu_ICU = self.gamma_ICU * self.ICUFR / (self.mu_ICU + (self.gamma_ICU- self.mu_ICU) * self.ICUFR)
         except:
-            self.nu = self.gamma_IH * self.HFR / (self.mu + (self.gamma_IH- self.mu) * self.HFR)
+            self.nu = self.gamma_IH * self.HFR / (self.mu + (self.gamma_IH - self.mu) * self.HFR)
 
         
         # Update hospital dynamic parameters:

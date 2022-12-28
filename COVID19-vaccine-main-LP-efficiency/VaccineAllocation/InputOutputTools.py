@@ -49,6 +49,9 @@ SimReplication_IO_var_names = (
     "IH_history",
     "ToIHT_history",
     "ToIY_history",
+    "D_history",
+    "ToICUD_history",
+    "ToIYD_history",
     "next_t",
     "S",
     "E",
@@ -109,9 +112,7 @@ SimReplication_IO_arrays_var_names = (
 VaccineGroup_IO_var_names = (
                                 "v_beta_reduct",
                                 "v_tau_reduct",
-                                "v_beta_reduct_delta",
-                                "v_tau_reduct_delta",
-                                "v_tau_reduct_omicron",
+                                "v_pi_reduct"
                             ) + SimReplication_IO_arrays_var_names
 
 # List of names of VaccineGroup attributes that are arrays
@@ -128,7 +129,7 @@ MultiTierPolicy_IO_var_names = (
     "surge_history"
 )
 
-plot_var_names = ["ICU_history", "ToIY_history", "ToIHT_history", "IH_history"]
+plot_var_names = ["ICU_history", "ToIY_history", "ToIHT_history", "IH_history", "D_history", "ToICUD_history", "ToIYD_history"]
 
 ###############################################################################
 
