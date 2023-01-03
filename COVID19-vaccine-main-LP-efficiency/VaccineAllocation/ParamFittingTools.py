@@ -134,11 +134,11 @@ class ParameterFitting:
                 if var.split()[1] == "start_date":
                     self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
                         "start_date"] = self.city.variant_start + dt.timedelta(days=int(x_variables[idx]))
-                elif var.split()[1] == "start_date":
-                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"]["delta"]["days"] = int(
+                elif var.split()[1] == "days":
+                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]]["days"] = int(
                         x_variables[idx])
-                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"]["delta"][
-                        "peak_date"] = self.city.variant_pool.variants_data['epi_params']["immune_evasion"]["delta"][
+                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
+                        "peak_date"] = self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
                                            "start_date"] + dt.timedelta(days=int(x_variables[idx]))
                 else:
                     self.city.variant_pool.variants_data['epi_params'][var.split()[1]][var.split()[0]] = x_variables[idx]

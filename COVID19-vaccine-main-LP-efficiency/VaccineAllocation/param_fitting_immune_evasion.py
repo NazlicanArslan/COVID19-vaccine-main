@@ -30,7 +30,7 @@ austin = City(
     "austin_hosp_ad_updated.csv",
     "austin_real_death_from_hosp_updated.csv",
     "austin_real_death_from_home.csv",
-    "variant_prevalence_no_omicron.csv"
+    "variant_prevalence.csv"
 )
 
 tiers = TierInfo("austin", "tiers5_opt_Final.json")
@@ -59,7 +59,10 @@ change_dates = [dt.date(2020, 2, 15),
                 dt.date(2021, 8, 10),
                 dt.date(2021, 9, 28),
                 dt.date(2021, 10, 12),
-                dt.date(2021, 12, 4)]
+                dt.date(2021, 12, 4),
+                dt.date(2022, 1, 6),
+                dt.date(2022, 2, 24),
+                dt.date(2022, 3, 30)]
 
 # We don't fit all the transmission reduction values from scratch as the least square fit cannot handle too many
 # decision variables. We used the existing fitted values for the earlier fit data. In transmission_reduction and
@@ -78,7 +81,10 @@ transmission_reduction = [0.052257,
                           0.625870,
                           0.665571,
                           0.669628,
-                          0.613777]
+                          0.613777,
+                          None,
+                          None,
+                          None]
 # for the high risk groups uses cocoon instead of contact reduction
 cocoon = np.array([0,
                    0.787752,
@@ -94,7 +100,10 @@ cocoon = np.array([0,
                    0.625870,
                    0.665571,
                    0.669628,
-                   0.613777])
+                   0.613777,
+                   None,
+                   None,
+                   None])
 
 end_date = []
 for idx in range(len(change_dates[1:])):
@@ -107,28 +116,30 @@ table = pd.DataFrame(
     }
 )
 # The initial guess of the variables to estimate:
-initial_guess = np.array([0.26, 1.3, 4.4, 0.64])
+initial_guess = np.array([229, 18, 0.71, 0.83, 0.73])
 # Lower and upper bound tuple:
-x_bound = ([0, 0, 0, 0], [5, 5, 5, 5])
+x_bound = ([229, 1, 0, 0, 0], [250, 30, 1, 1, 1])
 
 # Austin weights for the least-square fit:
 # You can input the data you would like to use in the process and corresponding weights. Different data have different
 # scales that's why we use weights.
-objective_weights = {"IH_history": 1,
-                     "ICU_history": 1.5,
-                     "ToIHT_history": 7.583296,
-                     "ToICUD_history": 7.583296 * 5,
-                     "ToIYD_history": 7.583296 * 5}
+# objective_weights = {"IH_history": 1,
+#                      "ICU_history": 1.5,
+#                      "ToIHT_history": 7.583296,
+#                      "ToICUD_history": 7.583296 * 5,
+#                      "ToIYD_history": 7.583296 * 5}
+
+objective_weights = {"ToIHT_history": 1}
 
 # We generally use the least square fit to find transmission reduction and cocooning in a population. But time to time
 # we may need to estimate other parameters. Fitting transmission reduction is optional. In the current version of
 # the parameter fitting you can input the name of parameter you would like to fit, and you don't need to change anything
 # else in the source code.
-variables = ["delta alpha_gamma_ICU", "delta alpha_IH", "delta alpha_mu_ICU", "delta alpha_IYD"]
+variables = ["omicron start_date", "omicron days", "transmission_reduction"]
 
 
 # We can define the time frame we would like to use data from as follows:
-time_frame = (austin.cal.calendar.index(dt.datetime(2021, 6, 20)), austin.cal.calendar.index(dt.datetime(2021, 12, 4)))
+time_frame = (austin.cal.calendar.index(dt.datetime(2021, 12, 4)), austin.cal.calendar.index(dt.datetime(2022, 3, 30)))
 
 param_fitting = ParameterFitting(austin,
                                  vaccines,

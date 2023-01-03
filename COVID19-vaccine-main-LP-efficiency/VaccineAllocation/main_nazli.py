@@ -81,6 +81,6 @@ export_rep_to_json(
 # end_time = austin.cal.calendar.index(dt.datetime(2020, 8, 31))
 # base_filename = f"{austin.path_to_input_output}/{seed}_"
 # evaluate_single_policy_on_sample_path(austin, vaccines, ctp, end_time, new_seed, num_reps, base_filename)
-real_history_end_date = dt.datetime(2022, 2, 28)
+real_history_end_date = dt.datetime(2022, 3, 30)
 # equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
 plot_from_file([seed], 1, austin, real_history_end_date, equivalent_thresholds)

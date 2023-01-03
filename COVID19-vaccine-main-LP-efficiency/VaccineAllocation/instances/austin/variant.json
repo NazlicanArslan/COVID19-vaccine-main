@@ -4,11 +4,16 @@
             "half_life": 8,
             "start_date": "2021-05-14 00:00:00",
             "peak_date":  "2021-06-29 00:00:00"
+          },
+          "omicron": {
+            "half_life": 8,
+            "start_date": "2021-12-16 00:00:00",
+            "peak_date":  "2021-12-23 00:00:00"
           }
         },
         "alpha_gamma_ICU": {
             "delta": 0.58958,
-            "omicron": 1,
+            "omicron": 0.58958,
             "new_variant": 1
         },
         "alpha_IH": {
@@ -18,12 +23,12 @@
         },
         "alpha_mu_ICU": {
             "delta": 4.42739,
-            "omicron": 4,
+            "omicron": 1,
             "new_variant": 4
         },
         "alpha_IYD": {
             "delta": 0.6357,
-            "omicron": 0.002,
+            "omicron": 1,
             "new_variant": 0.002
         },
         "beta": {
@@ -48,12 +53,12 @@
         },
         "YHR": {
             "delta": 1.8,
-            "omicron": 1.8,
+            "omicron": 0.9,
             "new_variant": 1.8
         },
         "YHR_overall": {
             "delta": 1.8,
-            "omicron": 1.8,
+            "omicron": 0.9,
             "new_variant": 1.8
         }
     },

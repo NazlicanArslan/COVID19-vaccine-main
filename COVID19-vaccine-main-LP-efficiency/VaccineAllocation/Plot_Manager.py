@@ -24,15 +24,15 @@ compartment_names = {
 y_lim = {'ToIHT_history': 150,
          'ToIHT_history_sum': 60,
          'IH_history_average': 1,
-         'D_history': 3000,
+         'D_history': 4000,
          'ICU_history': 300,
          'ToICUD_history': 30,
          'ToIYD_history': 30,
-         'IH_history': 500,
+         'IH_history': 600,
          'ToSS_unvax': 4000,
          'ToRS_unvax': 3000,
          'R_history': 500000,
-         'ToIY_history': 1000}
+         'ToIY_history': 6000}
 
 plt.rcParams["font.size"] = "18"
 
