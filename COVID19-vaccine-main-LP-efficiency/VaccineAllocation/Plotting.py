@@ -1,63 +1,74 @@
-import datetime
-import numpy as np
-import pandas as pd
-from matplotlib import pyplot as plt
-import json
-from InputOutputTools import SimReplication_IO_list_of_arrays_var_names
 from pathlib import Path
-from scipy.signal import find_peaks
+import pandas as pd
+from Plot_Manager import Plot
+from Report_Manager import Report
+from InputOutputTools import import_stoch_reps_for_reporting
 
 base_path = Path(__file__).parent
 path_to_plot = base_path / "plots"
+real_data_file_names = {}
+
+tier_colors = ["green", "blue", "yellow", "orange", "red"]
+surge_colors = ['moccasin', 'pink']
 
 
-def plot_from_file(simulation_filename, instance):
-    with open(simulation_filename) as file:
-        data = json.load(file)
+def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_thresholds):
+    sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, instance)
+    for key, val in sim_outputs.items():
+        print(key)
+        if hasattr(instance, f"real_{key}"):
+            real_data = getattr(instance, f"real_{key}")
+        else:
+            real_data = None
 
-    for var in SimReplication_IO_list_of_arrays_var_names:
-        y_data = data[var]
-        print(var)
-        print(len(y_data))
-        plt.clf()
-        fig, ax = plt.subplots()
-        start_date = instance.start_date
-        num_days = len(y_data)
-        x_axis = [start_date + datetime.timedelta(days=x) for x in range(num_days)]
-        if var == "ICU_history":
-            ax.scatter(x_axis, instance.real_hosp_icu[0:num_days], color='maroon', zorder=100, s=15)
-            ax.plot(x_axis, np.sum(np.sum(y_data, axis=1), axis=1), linewidth=2, zorder=50)
-            ax.set_ylabel('COVID-19 ICU Patients')
-            fig.autofmt_xdate()
-            plt.savefig(path_to_plot / "ICU_history_a.png")
-        elif var == "IH_history":
-            real_hosp = [
-                ai - bi for (ai, bi) in zip(instance.real_hosp, instance.real_hosp_icu)
+        if key == "ICU_history":
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.dali_plot(policy_outputs["tier_history"], tier_colors)
+
+        elif key == "ToIHT_history":
+            plot = Plot(instance, real_history_end_date, real_data, val, key, color=('k', 'silver'))
+            plot.changing_horizontal_plot(policy_outputs["surge_history"],
+                                          ["non_surge", "surge"],
+                                          equivalent_thresholds,
+                                          tier_colors)
+
+            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}_sum", color=('k', 'silver'))
+            plot.changing_horizontal_plot(policy_outputs["surge_history"],
+                                          ["non_surge", "surge"],
+                                          policy_outputs["hosp_adm_thresholds"][0],
+                                          tier_colors)
+        elif key == "IH_history":
+            real_data = [
+                ai - bi for (ai, bi) in zip(instance.real_IH_history, instance.real_ICU_history)
             ]
-            ax.scatter(x_axis, real_hosp[0:num_days], color='maroon', zorder=100, s=15)
-            ax.plot(x_axis, np.sum(np.sum(y_data, axis=1), axis=1))
-            ax.set_ylabel('COVID-19 Hospitalizations')
-            fig.autofmt_xdate()
-            plt.savefig(path_to_plot / "IH_history_a.png")
-        elif var == "ToIHT_history":
-            # plot the 7-day moving average.
-            moving_avg_len = instance.config["moving_avg_len"]
-            ToIHT_moving = [np.sum(y_data, axis=(1, 2))[i: min(i + moving_avg_len, num_days)].mean() for i in range(num_days)]
-            instance.real_hosp_ad = np.array(instance.real_hosp_ad)
-            real_hosp_moving = [instance.real_hosp_ad[0:num_days][i: min(i + moving_avg_len, num_days)].mean() for i in range(num_days)]
+            plot = Plot(instance,  real_history_end_date, real_data, val, f"{key}_average", color=('k', 'silver'))
+            plot.changing_horizontal_plot(policy_outputs["surge_history"],
+                                          ["non_surge", "surge"],
+                                          policy_outputs["staffed_bed_thresholds"][0],
+                                          tier_colors)
 
-            ax.scatter(x_axis, real_hosp_moving, color='maroon', zorder=100, s=15)
-            ax.plot(x_axis, ToIHT_moving)
-            ax.set_ylabel('COVID-19 Hospital Admissions\n(Seven-day Average)')
-            fig.autofmt_xdate()
-            plt.savefig(path_to_plot / "admission_history_a.png")
-        elif var == "D_history":
-            ax.scatter(x_axis, np.cumsum(instance.real_death_total[0:num_days]), color='maroon', zorder=100, s=15)
-            ax.plot(x_axis, np.sum(np.sum(y_data, axis=1), axis=1))
-            fig.autofmt_xdate()
-            plt.savefig(path_to_plot / "death_history_a.png")
+        elif key == "ToIY_history":
+            # ToDo: Fix the data reading part here:
+            filename = 'austin_real_case.csv'
+            real_data = pd.read_csv(
+                str(instance.path_to_data / filename),
+                parse_dates=["date"],
+                date_parser=pd.to_datetime,
+            )["admits"]
 
-        # plt.show()
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["surge_history"], surge_colors)
+        #
+        # elif key == "D_history":
+        #     real_data = [
+        #                 ai - bi for (ai, bi) in zip(instance.real_ToIYD_history, instance.real_ToICUD_history)
+        #             ]
+        #     breakpoint()
+        #     plot = Plot(instance, real_history_end_date, real_data, val, key)
+        #     plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
 
-
+def report_from_file(seeds, num_reps, instance, stats_start_date, stats_end_date):
+    sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, instance)
+    report = Report(instance, sim_outputs, policy_outputs, stats_start_date, stats_end_date)
+    report.build_report()

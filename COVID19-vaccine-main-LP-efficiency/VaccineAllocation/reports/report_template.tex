@@ -1,0 +1,125 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx} % Allows including images
+\usepackage[font=small,skip=10pt]{caption}
+\usepackage[font=footnotesize,skip=0pt]{subcaption}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{comment}
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ left=20mm,
+ right=10mm,
+ top=30mm,
+ bottom=10mm,
+ }
+\setlength\parindent{0pt}
+
+\newcolumntype{C}[1]{>{\centering \arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\left \arraybackslash}p{#1}}
+
+\title{Report for CITY}
+\author{}
+\date{\today}
+
+\begin{document}
+
+%\maketitle
+\begin{figure}[!htb]
+  \centering
+   \includegraphics[width=0.5\linewidth]{BAR_PLOT}
+   \caption{\textbf{INSERT-TRIGGER-DESCRIPTION} Bar Plot of Tiers}
+      \label{fig:IHT}
+\end{figure}
+ \textbf{Start date:} START-DATE,	
+\textbf{Statistics start date:} STATISTICS-START-DATE,
+\textbf{Statistics end date:} STATISTICS-END-DATE.
+\begin{table}[!htb]
+	\centering
+	\begin{tabular}{p{4cm}cc}
+		\toprule
+		\multirow{3}{*}{Days of blue} & Mean      & MEAN-BLUE                     \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & P5-BLUE                      \\ \cmidrule(l){2-3} 
+		& Median    & P50-BLUE                     \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & P95-BLUE                          \\ \midrule 
+		\multirow{1}{*}{Paths in blue ( \% )} &      &         PATHS-IN-BLUE                \\   \midrule
+		\multirow{3}{*}{Days of yellow} & Mean      & MEAN-YELLOW                       \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & P5-YELLOW                      \\ \cmidrule(l){2-3} 
+		& Median    & P50-YELLOW                     \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & P95-YELLOW                     \\ \midrule    
+		\multirow{1}{*}{Paths in yellow ( \% )} &      &         PATHS-IN-YELLOW           \\   \midrule
+		\multirow{3}{*}{Days of orange} & Mean      & MEAN-ORANGE                    \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & P5-ORANGE                      \\ \cmidrule(l){2-3} 
+		& Median    & P50-ORANGE                    \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & P95-ORANGE                      \\ \midrule    
+		\multirow{1}{*}{Paths in orange ( \% )} &      &         PATHS-IN-ORANGE              \\   \midrule
+		\multirow{3}{*}{Days of red} & Mean      & MEAN-RED                        \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & P5-RED                     \\ \cmidrule(l){2-3} 
+		& Median    & P50-RED                      \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & P95-RED                     \\   \midrule   
+		\multirow{1}{*}{Paths in red ( \% )} &      &         PATHS-IN-RED            \\  \bottomrule
+	\end{tabular}
+	\caption{\textbf{INSERT-TRIGGER-DESCRIPTION} 
+		 Projected days of lock-down, probabilities of exceeding hospital capacity and COVID-19 mortality under the optimized strategies. All statistics are based on 300 simulations.}
+	\label{table:summary_table_tiers}
+\end{table}   
+
+
+\begin{table}[!htb]
+\centering
+\begin{tabular}{p{4cm}cc}
+\toprule
+\multirow{3}{\hsize}{Cumulative deaths}       & Mean      & MEAN-DEATHS \\ \cmidrule(l){2-3} 
+& 5\% Percentile     & P5-DEATHS                        \\ \cmidrule(l){2-3} 
+& Median    & P50-DEATHS                        \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & P95-DEATHS                      \\  \midrule          
+\multirow{3}{\hsize}{Peak COVID-19 daily total hospitalizations \\ (heads in beds)} & Mean & MEAN-IHT-PEAK \\ \cmidrule(l){2-3} 
+									& 5\% Percentile      & IHT-PEAK-P5     \\ \cmidrule(l){2-3} 
+	                                 & Median      & IHT-PEAK-P50    \\ \cmidrule(l){2-3} 
+                                     & 95\% Percentile      & IHT-PEAK-P95       \\ \midrule 
+\multirow{3}{\hsize}{Peak COVID-19 daily ICU hospitalizations \\ (heads in beds)} & Mean & MEAN-ICU-PEAK \\ \cmidrule(l){2-3} 
+									& 5\% Percentile      & ICU-PEAK-P5     \\ \cmidrule(l){2-3} 
+									 & Median      & ICU-PEAK-P50    \\ \cmidrule(l){2-3} 
+									 & 95\% Percentile      & ICU-PEAK-P95    \\ \midrule 		  							 
+\multirow{1}{*}{Paths with general capacity unmet ( \% )} &      &         1100-PATHS-IHT-UNMET              \\   \midrule 
+\multirow{3}{\hsize}{Paths with ICU capacity unmet ( \% )}  &  350 Beds    &         350-PATHS-ICU-UNMET      \\ \cmidrule(l){2-3}
+&  300 Beds    &         300-PATHS-ICU-UNMET              \\ \cmidrule(l){2-3}
+&   250 Beds   &         250-PATHS-ICU-UNMET               \\ \cmidrule(l){2-3}
+&   200 Beds   &        200-PATHS-ICU-UNMET               \\ \cmidrule(l){2-3}
+&   150 Beds   &         150-PATHS-ICU-UNMET                       \\   \midrule 
+\multirow{3}{\hsize}{Unserved total patient-days} & Mean & 1100-MEAN-IHT-UNSERVED  \\ \cmidrule(l){2-3}
+									& 5\% Percentile     & 1100-IHT-UNSERVED-P5    \\ \cmidrule(l){2-3}
+									& Median & 1100-IHT-UNSERVED-P50  \\ \cmidrule(l){2-3}  
+									& 95\% Percentile     & 1100-IHT-UNSERVED-P95       \\ \cmidrule(l){2-3} 
+									& 99\% Percentile     & 1100-IHT-UNSERVED-P99         \\ \cmidrule(l){2-3} 
+									& 100\% Percentile     & 1100-IHT-UNSERVED-P100      \\   \midrule 
+\multirow{3}{\hsize}{Unserved ICU patient-days (300 beds)} & Mean & 300-MEAN-ICU-UNSERVED  \\ \cmidrule(l){2-3}
+									& 5\% Percentile     & 300-ICU-UNSERVED-P5    \\ \cmidrule(l){2-3} 
+									& Median & 300-ICU-UNSERVED-P50  \\ \cmidrule(l){2-3} 
+									& 95\% Percentile     & 300-ICU-UNSERVED-P95    \\ \cmidrule(l){2-3} 
+									& 99\% Percentile     & 300-ICU-UNSERVED-P99   \\  \midrule  							
+\multirow{3}{\hsize}{Unserved ICU patient-days (200 beds)} & Mean & 200-MEAN-ICU-UNSERVED  \\ \cmidrule(l){2-3}
+& 5\% Percentile     & 200-ICU-UNSERVED-P5    \\ \cmidrule(l){2-3} 
+& Median & 200-ICU-UNSERVED-P50  \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & 200-ICU-UNSERVED-P95    \\ \cmidrule(l){2-3} 
+& 99\% Percentile     & 200-ICU-UNSERVED-P99          \\ \midrule
+\multirow{3}{\hsize}{Unserved ICU patient-days (150 beds)} & Mean & 150-MEAN-ICU-UNSERVED  \\ \cmidrule(l){2-3}
+& 5\% Percentile     & 150-ICU-UNSERVED-P5    \\ \cmidrule(l){2-3} 
+& Median & 150-ICU-UNSERVED-P50  \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & 150-ICU-UNSERVED-P95    \\ \cmidrule(l){2-3} 
+& 99\% Percentile     & 150-ICU-UNSERVED-P99    \\ \cmidrule(l){2-3} 		
+\multirow{3}{\hsize}{Date of peak}   & Percentile 5      & IHT-PEAK-DATE-P5   \\ \cmidrule(l){2-3} 
+                                     & Percentile 50     & IHT-PEAK-DATE-P50    \\ \cmidrule(l){2-3} 
+                                     & Percentile 95     & IHT-PEAK-DATE-P95     \\  \bottomrule
+\end{tabular}
+\caption{\textbf{INSERT-TRIGGER-DESCRIPTION}
+	End date: STATISTICS-END-DATE. Projected days of lock-down, probabilities of exceeding hospital capacity and COVID-19 mortality under the optimized strategies. All statistics are based on 300 simulations.}
+\label{table:summary_table}
+\end{table}
+
+
+\end{document}

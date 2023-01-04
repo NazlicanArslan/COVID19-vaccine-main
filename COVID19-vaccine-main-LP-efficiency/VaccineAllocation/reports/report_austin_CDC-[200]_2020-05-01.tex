@@ -1,0 +1,125 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\usepackage{graphicx} % Allows including images
+\usepackage[font=small,skip=10pt]{caption}
+\usepackage[font=footnotesize,skip=0pt]{subcaption}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{multicol}
+\usepackage{comment}
+\usepackage{geometry}
+ \geometry{
+ a4paper,
+ left=20mm,
+ right=10mm,
+ top=30mm,
+ bottom=10mm,
+ }
+\setlength\parindent{0pt}
+
+\newcolumntype{C}[1]{>{\centering \arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\left \arraybackslash}p{#1}}
+
+\title{Report for austin}
+\author{}
+\date{\today}
+
+\begin{document}
+
+%\maketitle
+\begin{figure}[!htb]
+  \centering
+   \includegraphics[width=0.5\linewidth]{/Users/nazlicanarslan/Desktop/github_clones/COVID19-vaccine-main/COVID19-vaccine-main-LP-efficiency/VaccineAllocation/reports/bar_austin_CDC-[200]_2020-05-01.pdf}
+   \caption{\textbf{CDC-[200]} Bar Plot of Tiers}
+      \label{fig:IHT}
+\end{figure}
+ \textbf{Start date:} START-DATE,	
+\textbf{Statistics start date:} 2020-05-01,
+\textbf{Statistics end date:} 2020-08-31.
+\begin{table}[!htb]
+	\centering
+	\begin{tabular}{p{4cm}cc}
+		\toprule
+		\multirow{3}{*}{Days of blue} & Mean      & 0.00                     \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & 0.0                      \\ \cmidrule(l){2-3} 
+		& Median    & 0.0                     \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & 0.0                          \\ \midrule 
+		\multirow{1}{*}{Paths in blue ( \% )} &      &         0.0                \\   \midrule
+		\multirow{3}{*}{Days of yellow} & Mean      & 14.00                       \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & 14.0                      \\ \cmidrule(l){2-3} 
+		& Median    & 14.0                     \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & 14.0                     \\ \midrule    
+		\multirow{1}{*}{Paths in yellow ( \% )} &      &         100.0           \\   \midrule
+		\multirow{3}{*}{Days of orange} & Mean      & 0.00                    \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & 0.0                      \\ \cmidrule(l){2-3} 
+		& Median    & 0.0                    \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & 0.0                      \\ \midrule    
+		\multirow{1}{*}{Paths in orange ( \% )} &      &         0.0              \\   \midrule
+		\multirow{3}{*}{Days of red} & Mean      & 108.00                        \\ \cmidrule(l){2-3} 
+		& 5\% Percentile    & 108.0                     \\ \cmidrule(l){2-3} 
+		& Median    & 108.0                      \\ \cmidrule(l){2-3} 
+		& 95\% Percentile    & 108.0                     \\   \midrule   
+		\multirow{1}{*}{Paths in red ( \% )} &      &         100.0            \\  \bottomrule
+	\end{tabular}
+	\caption{\textbf{CDC-[200]} 
+		 Projected days of lock-down, probabilities of exceeding hospital capacity and COVID-19 mortality under the optimized strategies. All statistics are based on 300 simulations.}
+	\label{table:summary_table_tiers}
+\end{table}   
+
+
+\begin{table}[!htb]
+\centering
+\begin{tabular}{p{4cm}cc}
+\toprule
+\multirow{3}{\hsize}{Cumulative deaths}       & Mean      & 467.0 \\ \cmidrule(l){2-3} 
+& 5\% Percentile     & 467.0                        \\ \cmidrule(l){2-3} 
+& Median    & 467.0                        \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & 467.0                      \\  \midrule          
+\multirow{3}{\hsize}{Peak COVID-19 daily total hospitalizations \\ (heads in beds)} & Mean & 540.0 \\ \cmidrule(l){2-3} 
+									& 5\% Percentile      & 540.0     \\ \cmidrule(l){2-3} 
+	                                 & Median      & 540.0    \\ \cmidrule(l){2-3} 
+                                     & 95\% Percentile      & 540.0       \\ \midrule 
+\multirow{3}{\hsize}{Peak COVID-19 daily ICU hospitalizations \\ (heads in beds)} & Mean & 180.0 \\ \cmidrule(l){2-3} 
+									& 5\% Percentile      & 180.0     \\ \cmidrule(l){2-3} 
+									 & Median      & 180.0    \\ \cmidrule(l){2-3} 
+									 & 95\% Percentile      & 180.0    \\ \midrule 		  							 
+\multirow{1}{*}{Paths with general capacity unmet ( \% )} &      &         0.0              \\   \midrule 
+\multirow{3}{\hsize}{Paths with ICU capacity unmet ( \% )}  &  350 Beds    &         0.0      \\ \cmidrule(l){2-3}
+&  300 Beds    &         0.0              \\ \cmidrule(l){2-3}
+&   250 Beds   &         0.0               \\ \cmidrule(l){2-3}
+&   200 Beds   &        0.0               \\ \cmidrule(l){2-3}
+&   150 Beds   &         100.0                       \\   \midrule 
+\multirow{3}{\hsize}{Unserved total patient-days} & Mean & 0.0  \\ \cmidrule(l){2-3}
+									& 5\% Percentile     & 0.0    \\ \cmidrule(l){2-3}
+									& Median & 0.0  \\ \cmidrule(l){2-3}  
+									& 95\% Percentile     & 0.0       \\ \cmidrule(l){2-3} 
+									& 99\% Percentile     & 0.0         \\ \cmidrule(l){2-3} 
+									& 100\% Percentile     & 0.0      \\   \midrule 
+\multirow{3}{\hsize}{Unserved ICU patient-days (300 beds)} & Mean & 0.0  \\ \cmidrule(l){2-3}
+									& 5\% Percentile     & 0.0    \\ \cmidrule(l){2-3} 
+									& Median & 0.0  \\ \cmidrule(l){2-3} 
+									& 95\% Percentile     & 0.0    \\ \cmidrule(l){2-3} 
+									& 99\% Percentile     & 0.0   \\  \midrule  							
+\multirow{3}{\hsize}{Unserved ICU patient-days (200 beds)} & Mean & 0.0  \\ \cmidrule(l){2-3}
+& 5\% Percentile     & 0.0    \\ \cmidrule(l){2-3} 
+& Median & 0.0  \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & 0.0    \\ \cmidrule(l){2-3} 
+& 99\% Percentile     & 0.0          \\ \midrule
+\multirow{3}{\hsize}{Unserved ICU patient-days (150 beds)} & Mean & 467.0  \\ \cmidrule(l){2-3}
+& 5\% Percentile     & 467.0    \\ \cmidrule(l){2-3} 
+& Median & 467.0  \\ \cmidrule(l){2-3} 
+& 95\% Percentile     & 467.0    \\ \cmidrule(l){2-3} 
+& 99\% Percentile     & 467.0    \\ \cmidrule(l){2-3} 		
+\multirow{3}{\hsize}{Date of peak}   & Percentile 5      & 2020-06-23   \\ \cmidrule(l){2-3} 
+                                     & Percentile 50     & 2020-06-23    \\ \cmidrule(l){2-3} 
+                                     & Percentile 95     & 2020-06-23     \\  \bottomrule
+\end{tabular}
+\caption{\textbf{CDC-[200]}
+	End date: STATISTICS-END-DATE. Projected days of lock-down, probabilities of exceeding hospital capacity and COVID-19 mortality under the optimized strategies. All statistics are based on 300 simulations.}
+\label{table:summary_table}
+\end{table}
+
+
+\end{document}

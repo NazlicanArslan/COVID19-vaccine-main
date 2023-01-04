@@ -49,6 +49,7 @@ SimReplication_IO_var_names = (
     "IH_history",
     "ToIHT_history",
     "ToIY_history",
+    "D_history",
     "next_t",
     "S",
     "E",
@@ -128,7 +129,7 @@ MultiTierPolicy_IO_var_names = (
     "surge_history"
 )
 
-plot_var_names = ["ICU_history", "ToIY_history", "ToIHT_history", "IH_history"]
+plot_var_names = ["ICU_history", "IH_history", "ToIY_history", "ToIHT_history", "IH_history", "D_history"]
 
 ###############################################################################
 

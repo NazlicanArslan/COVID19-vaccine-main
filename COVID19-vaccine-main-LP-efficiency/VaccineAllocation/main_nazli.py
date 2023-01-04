@@ -3,8 +3,7 @@ from DataObjects import City, TierInfo, Vaccine
 from SimModel import SimReplication
 from OptTools import evaluate_single_policy_on_sample_path, get_sample_paths
 from InputOutputTools import export_rep_to_json
-from Plotting_nazli import plot_from_file
-
+from Plotting import plot_from_file, report_from_file
 # Import other Python packages
 import numpy as np
 import datetime as dt
@@ -85,3 +84,6 @@ evaluate_single_policy_on_sample_path(austin, vaccines, ctp, end_time, new_seed,
 real_history_end_date = dt.datetime(2020, 5, 1)
 equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
 plot_from_file([seed], num_reps, austin, real_history_end_date, equivalent_thresholds)
+stats_start_date = dt.datetime(2020, 5, 1)
+stats_end_date = dt.datetime(2020, 8, 31)
+report_from_file([seed], num_reps, austin, stats_start_date, stats_end_date )
