@@ -288,8 +288,9 @@ class Plot:
 
     def dali_plot(self, tier_history, tier_colors):
         """
-        Plot the tier history colors of different sample paths. I'll implement this plot when I moved to plotting
-        multiple sample paths.
+        Plot the tier history colors. Different sample paths may be in different stages during the same time period.
+        color the background to tier color according the percent of paths in that particular tier during a particular
+        time. (e.g. if 40% of paths are in blue for a certain day then 40% of the background will be blue for that day.)
         :return:
         """
         bottom_tier = 0
