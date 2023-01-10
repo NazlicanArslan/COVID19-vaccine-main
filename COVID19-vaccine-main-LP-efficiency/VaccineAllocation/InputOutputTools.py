@@ -52,6 +52,8 @@ SimReplication_IO_var_names = (
     "D_history",
     "ToICUD_history",
     "ToIYD_history",
+    "ToRS_history",
+    "ToSS_history",
     "next_t",
     "S",
     "E",
@@ -83,6 +85,8 @@ SimReplication_IO_list_of_arrays_var_names = (
     "D_history",
     "ToICUD_history",
     "ToIYD_history",
+    "ToRS_history",
+    "ToSS_history",
 )
 
 # List of names of SimReplication attributes that are arrays
@@ -129,7 +133,15 @@ MultiTierPolicy_IO_var_names = (
     "surge_history"
 )
 
-plot_var_names = ["ICU_history", "ToIY_history", "ToIHT_history", "IH_history", "D_history", "ToICUD_history", "ToIYD_history"]
+plot_var_names = ["ICU_history",
+                  "ToIY_history",
+                  "ToIHT_history",
+                  "IH_history",
+                  "D_history",
+                  "ToICUD_history",
+                  "ToIYD_history",
+                  "ToRS_history",
+                  "ToSS_history"]
 
 ###############################################################################
 

@@ -2,6 +2,7 @@ import numpy as np
 
 datetime_formater = "%Y-%m-%d %H:%M:%S"
 
+
 ###############################################################################
 # Common simple functions:
 
@@ -244,12 +245,12 @@ class MultiTierPolicy:
 
 class VaccineGroup:
     def __init__(
-        self,
-        v_name,
-        v_beta_reduct,
-        v_tau_reduct,
-        v_pi_reduct,
-        instance,
+            self,
+            v_name,
+            v_beta_reduct,
+            v_tau_reduct,
+            v_pi_reduct,
+            instance,
     ):
         """
         Define each vaccine status as a group. Define each set of compartments for vaccine group.
@@ -305,6 +306,9 @@ class VaccineGroup:
             "ToIYD",
             "ToIA",
             "ToIY",
+            "ToRS",
+            "ToSS",
+            "ToR"
         )
 
         for attribute in self.state_vars:
@@ -332,3 +336,14 @@ class VaccineGroup:
             ('v_beta_reduct', self.v_name)]  # efficacy against infection.
         self.v_tau_reduct = self.v_tau_reduct * (1 - prev) + params[
             ('v_tau_reduct', self.v_name)]  # efficacy against symptomatic infection.
+
+    def get_total_population(self, total_risk_groups):
+        """
+        :param total_risk_groups: total number of compartments for age-risk groups.
+        :return: the total population in a certain vaccine group (S+E+IY+PY+..).
+        """
+        N = 0
+        for attribute in self.state_vars:
+            N += getattr(self, attribute)
+        N = N.reshape((total_risk_groups, 1))
+        return N

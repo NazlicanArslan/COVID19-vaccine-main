@@ -425,7 +425,7 @@ class Vaccine:
         """
         Must be called after self.build_event_lookup_dict builds the event lookup dictionary
 
-        vaccine_type is one of the keys of self.vaccine_allocation ("v_first", "v_second", "v_booster", "v_wane")
+        vaccine_type is one of the keys of self.vaccine_allocation ("v_first", "v_second", "v_booster")
         date is a datetime object
 
         Returns the index i such that self.vaccine_allocation[vaccine_type][i]["supply"]["time"] == date
@@ -442,16 +442,16 @@ class Vaccine:
 
         :param total_population: integer, usually N parameter such as instance.N
         :param total_risk_gr: instance.A x instance.L
-        :param vaccine_group_name: string of vaccine_group_name (see Vaccine.define_groups())
+        :param vaccine_group_name: string of vaccine_group_name (see VaccineGroup)
              ("unvax", "first_dose", "second_dose", "waned")
         :param v_in: tuple with strings of vaccine_types going "in" to that vaccine group
         :param v_out: tuple with strings of vaccine_types going "out" of that vaccine group
         :param date: datetime object
-        :return: list of number eligible at that date, where each element corresponds to age/risk group
-            (list is length A * L)
+        :return: list of number eligible people for vaccination at that date, where each element corresponds
+        to age/risk group (list is length A * L).
+                For instance, only those who received their first-dose three weeks ago are eligible to get
+                their second dose vaccine.
         """
-
-        # I don't know what dimension instance.N is, so need to check...
 
         N_in = np.zeros((total_risk_gr, 1))
         N_out = np.zeros((total_risk_gr, 1))
@@ -506,9 +506,17 @@ class Vaccine:
 
         if vaccine_group_name == "unvax":
             N_eligible = total_population.reshape((total_risk_gr, 1)) - N_out
+        elif vaccine_group_name == "waned":
+            # Waned compartment does not have incoming vaccine schedule but has outgoing scheduled vaccine. People
+            # enter waned compartment with binomial draw. This calculation would return negative value
+            return None
         else:
             N_eligible = N_in - N_out
 
+        assert (N_eligible > -1e-2).all(), (
+            f"fPop negative eligible individuals for vaccination in vaccine group {vaccine_group_name}"
+            f"{N_eligible} at time {date}"
+        )
         return N_eligible
 
     def define_supply(self, instance, vaccine_allocation_data, booster_allocation_data):
@@ -542,7 +550,6 @@ class Vaccine:
         v_first_allocation = []
         v_second_allocation = []
         v_booster_allocation = []
-        v_wane_allocation = []
 
         age_risk_columns = [
             column

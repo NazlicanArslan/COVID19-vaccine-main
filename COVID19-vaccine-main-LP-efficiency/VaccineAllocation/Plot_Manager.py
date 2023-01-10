@@ -19,7 +19,9 @@ compartment_names = {
     'ToSS_unvax': 'Evasion of Vaccine Induced Immunity',
     'ToRS_unvax': 'Evasion of Natural Immunity',
     'R_history': 'Recovered',
-    'ToIY_history': 'COVID-19 New Symptomatic Cases per 100k\n(Seven-day Sum)'
+    'ToIY_history': 'COVID-19 New Symptomatic Cases per 100k\n(Seven-day Sum)',
+    'ToRS_history': 'COVID-19 Natural Infection Immunity Evasion',
+    'ToSS_history': 'COVID-19 Vaccine Induced Immunity Evasion'
 }
 y_lim = {'ToIHT_history': 150,
          'ToIHT_history_sum': 60,
@@ -32,7 +34,10 @@ y_lim = {'ToIHT_history': 150,
          'ToSS_unvax': 4000,
          'ToRS_unvax': 3000,
          'R_history': 500000,
-         'ToIY_history': 6000}
+         'ToIY_history': 2000,
+         'ToRS_history': 300000,
+         'ToSS_history': 400000
+         }
 
 plt.rcParams["font.size"] = "18"
 

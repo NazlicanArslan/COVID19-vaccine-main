@@ -59,10 +59,7 @@ change_dates = [dt.date(2020, 2, 15),
                 dt.date(2021, 8, 10),
                 dt.date(2021, 9, 28),
                 dt.date(2021, 10, 12),
-                dt.date(2021, 12, 4),
-                dt.date(2022, 1, 6),
-                dt.date(2022, 2, 24),
-                dt.date(2022, 3, 30)]
+                dt.date(2021, 12, 4)]
 
 # We don't fit all the transmission reduction values from scratch as the least square fit cannot handle too many
 # decision variables. We used the existing fitted values for the earlier fit data. In transmission_reduction and
@@ -77,11 +74,8 @@ transmission_reduction = [0.052257,
                           0.801538,
                           0.811144,
                           0.6849,
-                          0.539101,
-                          0.625945789,
-                          0.665369334,
-                          0.703965861,
-                          0.538824759,
+                          None,
+                          None,
                           None,
                           None,
                           None]
@@ -96,11 +90,8 @@ cocoon = np.array([0,
                    0.801538,
                    0.811144,
                    0.6849,
-                   0.539101,
-                   0.625945789,
-                   0.665369334,
-                   0.703965861,
-                   0.538824759,
+                   None,
+                   None,
                    None,
                    None,
                    None])
@@ -116,9 +107,9 @@ table = pd.DataFrame(
     }
 )
 # The initial guess of the variables to estimate:
-initial_guess = np.array([229, 18, 0.68, 0.78, 0.73])
+initial_guess = np.array([25, 46, 0.5391, 0.625870, 0.665571, 0.6696, 0.55])
 # Lower and upper bound tuple:
-x_bound = ([229, 1, 0, 0, 0], [250, 30, 1, 1, 1])
+x_bound = ([0, 1, 0, 0, 0, 0, 0], [100, 60, 1, 1, 1, 1, 1])
 
 # Austin weights for the least-square fit:
 # You can input the data you would like to use in the process and corresponding weights. Different data have different
@@ -135,11 +126,11 @@ objective_weights = {"ToIHT_history": 1}
 # we may need to estimate other parameters. Fitting transmission reduction is optional. In the current version of
 # the parameter fitting you can input the name of parameter you would like to fit, and you don't need to change anything
 # else in the source code.
-variables = ["omicron start_date", "omicron days", "transmission_reduction"]
+variables = ["delta start_date", "delta days", "transmission_reduction"]
 
 
 # We can define the time frame we would like to use data from as follows:
-time_frame = (austin.cal.calendar.index(dt.datetime(2021, 12, 4)), austin.cal.calendar.index(dt.datetime(2022, 3, 30)))
+time_frame = (austin.cal.calendar.index(dt.datetime(2021, 6, 20)), austin.cal.calendar.index(dt.datetime(2021, 12, 4)))
 
 param_fitting = ParameterFitting(austin,
                                  vaccines,
