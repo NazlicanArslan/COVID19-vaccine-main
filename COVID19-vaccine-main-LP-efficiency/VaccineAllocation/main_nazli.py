@@ -13,7 +13,7 @@ austin = City(
     "austin_test_IHT.json",
     "calendar.csv",
     "setup_data_Final.json",
-    "transmission_May2020.csv",
+    "transmission.csv",
     "austin_real_hosp_updated.csv",
     "austin_real_icu_updated.csv",
     "austin_hosp_ad_updated.csv",
@@ -49,7 +49,7 @@ ctp = CDCTierPolicy(austin, tiers, case_threshold, hosp_adm_thresholds, staffed_
 seed = -1
 rep = SimReplication(austin, vaccines, ctp, seed)
 
-time_end = austin.cal.calendar.index(dt.datetime(2022, 9, 30))
+time_end = austin.cal.calendar.index(dt.datetime(2020, 4, 30))
 # rep.simulate_time_period(time_end)
 # base_filename = f"{austin.path_to_input_output}/{seed}_1"
 # export_rep_to_json(
@@ -73,17 +73,17 @@ time_end = austin.cal.calendar.index(dt.datetime(2022, 9, 30))
 #################################################################################################################
 seed = 1
 num_reps = 1
-# time_points = [dt.datetime(2020, 4, 30)]
-# time_points = [austin.cal.calendar.index(date) for date in time_points]
-# get_sample_paths(austin, vaccines, 0.75, num_reps, seed, time_points)
+time_points = [dt.datetime(2020, 3, 15), dt.datetime(2020, 4, 30)]
+time_points = [austin.cal.calendar.index(date) for date in time_points]
+get_sample_paths(austin, vaccines, 0.75, num_reps, seed, time_points)
 
-new_seed = 3
-end_time = austin.cal.calendar.index(dt.datetime(2020, 8, 31))
-base_filename = f"{austin.path_to_input_output}/{seed}_"
-evaluate_single_policy_on_sample_path(austin, vaccines, ctp, end_time, new_seed, num_reps, base_filename)
-real_history_end_date = dt.datetime(2020, 5, 1)
-equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
-plot_from_file([seed], num_reps, austin, real_history_end_date, equivalent_thresholds)
-stats_start_date = dt.datetime(2020, 5, 1)
-stats_end_date = dt.datetime(2020, 8, 31)
-report_from_file([seed], num_reps, austin, stats_start_date, stats_end_date )
+# new_seed = 3
+# end_time = austin.cal.calendar.index(dt.datetime(2020, 8, 31))
+# base_filename = f"{austin.path_to_input_output}/{seed}_"
+# evaluate_single_policy_on_sample_path(austin, vaccines, ctp, end_time, new_seed, num_reps, base_filename)
+# real_history_end_date = dt.datetime(2020, 5, 1)
+# equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
+# plot_from_file([seed], num_reps, austin, real_history_end_date, equivalent_thresholds)
+# stats_start_date = dt.datetime(2020, 5, 1)
+# stats_end_date = dt.datetime(2020, 8, 31)
+# report_from_file([seed], num_reps, austin, stats_start_date, stats_end_date )

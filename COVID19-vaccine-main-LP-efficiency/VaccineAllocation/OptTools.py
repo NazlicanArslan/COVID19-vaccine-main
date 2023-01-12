@@ -119,6 +119,7 @@ def get_sample_paths(
         # Use time block heuristic, simulating in increments
         #   and checking R-squared to eliminate bad
         #   sample paths early on
+        rep_list = []
         for i in range(len(timepoints)):
             rep.simulate_time_period(timepoints[i])
             rsq = rep.compute_rsq()
@@ -127,23 +128,33 @@ def get_sample_paths(
                 valid = False
                 all_rsq.append(rsq)
                 break
+            else:
+                # Cache the state of the simulation rep at the time block.
+                temp_rep = copy.deepcopy(rep)
+                rep_list.append(temp_rep)
 
         # If the sample path's R-squared is above rsq_cutoff
         #   at all timepoints, we accept it
+
         if valid:
             num_good_reps += 1
             all_rsq.append(rsq)
             identifier = str(processor_rank) + "_" + str(num_good_reps)
-            export_rep_to_json(
-                rep,
-                city.path_to_input_output / (identifier + "_sim.json"),
-                city.path_to_input_output / (identifier + "_v0.json"),
-                city.path_to_input_output / (identifier + "_v1.json"),
-                city.path_to_input_output / (identifier + "_v2.json"),
-                city.path_to_input_output / (identifier + "_v3.json"),
-                None,
-                city.path_to_input_output / (identifier + "_epi_params.json"),
-            )
+            # save the state of the rep for each time block as seperate files.
+            # Each file will be used for retrospective analysis of different peaks.
+            # Each peak will have different end dates of historical data.
+            for i in range(len(timepoints)):
+                t = str(city.cal.calendar[timepoints[i]].date())
+                export_rep_to_json(
+                    rep_list[i],
+                    city.path_to_input_output / (identifier + "_" + t + "_sim.json"),
+                    city.path_to_input_output / (identifier + "_" + t + "_v0.json"),
+                    city.path_to_input_output / (identifier + "_" + t + "_v1.json"),
+                    city.path_to_input_output / (identifier + "_" + t + "_v2.json"),
+                    city.path_to_input_output / (identifier + "_" + t + "_v3.json"),
+                    None,
+                    city.path_to_input_output / (identifier + "_epi_params.json"),
+                )
 
         # Internally save the state of the random number generator
         #   to hand to the next sample path
