@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/../COVID19-vaccine-main/.idea/COVID19-vaccine-main.iml" filepath="$PROJECT_DIR$/../COVID19-vaccine-main/.idea/COVID19-vaccine-main.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/COVID19-vaccine-main-LP-efficiency.iml" filepath="$PROJECT_DIR$/.idea/COVID19-vaccine-main-LP-efficiency.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../Original Code from Nazlican/.idea/Original Code from Nazlican.iml" filepath="$PROJECT_DIR$/../Original Code from Nazlican/.idea/Original Code from Nazlican.iml" />
     </modules>
   </component>
 </project>

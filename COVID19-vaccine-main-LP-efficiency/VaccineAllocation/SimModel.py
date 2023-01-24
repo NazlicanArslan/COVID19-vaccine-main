@@ -154,40 +154,28 @@ class SimReplication:
         :return: [None]
         """
 
+        N = self.instance.N
+        I0 = self.instance.I0
+        A = self.instance.A
+        L = self.instance.L
+        step_size = self.instance.config["step_size"]
+
         self.vaccine_groups = []
-        self.vaccine_groups.append(VaccineGroup("v_0", 0, 0, 0, 0, 0, self.instance))
+        self.vaccine_groups.append(VaccineGroup("v_0", 0, 0, 0, 0, 0, N, I0, A, L, step_size))
         self.vaccine_groups.append(
-            VaccineGroup(
-                "v_1",
-                self.vaccine.beta_reduct[1],
-                self.vaccine.tau_reduct[1],
-                self.vaccine.beta_reduct_delta[1],
-                self.vaccine.tau_reduct_delta[1],
-                self.vaccine.tau_reduct_omicron[1],
-                self.instance,
-            )
+            VaccineGroup("v_1", self.vaccine.beta_reduct[1], self.vaccine.tau_reduct[1],
+                         self.vaccine.beta_reduct_delta[1], self.vaccine.tau_reduct_delta[1],
+                         self.vaccine.tau_reduct_omicron[1], N, I0, A, L, step_size)
         )
         self.vaccine_groups.append(
-            VaccineGroup(
-                "v_2",
-                self.vaccine.beta_reduct[2],
-                self.vaccine.tau_reduct[2],
-                self.vaccine.beta_reduct_delta[2],
-                self.vaccine.tau_reduct_delta[2],
-                self.vaccine.tau_reduct_omicron[2],
-                self.instance,
-            )
+            VaccineGroup("v_2", self.vaccine.beta_reduct[2], self.vaccine.tau_reduct[2],
+                         self.vaccine.beta_reduct_delta[2], self.vaccine.tau_reduct_delta[2],
+                         self.vaccine.tau_reduct_omicron[2], N, I0, A, L, step_size)
         )
         self.vaccine_groups.append(
-            VaccineGroup(
-                "v_3",
-                self.vaccine.beta_reduct[0],
-                self.vaccine.tau_reduct[0],
-                self.vaccine.beta_reduct_delta[0],
-                self.vaccine.tau_reduct_delta[0],
-                self.vaccine.tau_reduct_omicron[0],
-                self.instance,
-            )
+            VaccineGroup("v_3", self.vaccine.beta_reduct[0], self.vaccine.tau_reduct[0],
+                         self.vaccine.beta_reduct_delta[0], self.vaccine.tau_reduct_delta[0],
+                         self.vaccine.tau_reduct_omicron[0], N, I0, A, L, step_size)
         )
         self.vaccine_groups = tuple(self.vaccine_groups)
 

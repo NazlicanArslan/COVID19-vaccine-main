@@ -1,3 +1,9 @@
+###############################################################################
+
+# DataObjects.py
+
+###############################################################################
+
 import json
 import numpy as np
 import pandas as pd
@@ -22,7 +28,11 @@ class SimCalendar:
     as school calendars.
     """
 
-    def __init__(self, start_date, sim_length):
+    def __init__(self, start_date, sim_length,
+                 school_closure_blocks,
+                 ts_transmission_reduction, ts_cocooning,
+                 holidays, long_holidays,
+                 real_IH_history):
         self.start = start_date
         self.calendar = [self.start + dt.timedelta(days=t) for t in range(sim_length)]
         self.calendar_ix = {d: d_ix for (d_ix, d) in enumerate(self.calendar)}
@@ -32,23 +42,7 @@ class SimCalendar:
         self.schools_closed = None
         self.fixed_transmission_reduction = None
         self.fixed_cocooning = None
-
-    def load_predefined_lockdown(self, lockdown_blocks):
-        """
-        Loads fixed decisions on predefined lock-downs and saves
-        it on attribute lockdown.
-        Args:
-            lockdown_blocks (list of tuples): a list with blocks in which predefined lockdown is enacted
-            (e.g. [(datetime.date(2020,3,24),datetime.date(2020,8,28))])
-
-        """
-        self.lockdown = []
-        for d in self.calendar:
-            closedDay = False
-            for blNo in range(len(lockdown_blocks)):
-                if lockdown_blocks[blNo][0] <= d <= lockdown_blocks[blNo][1]:
-                    closedDay = True
-            self.lockdown.append(closedDay)
+        self.real_hosp = real_IH_history
 
     def load_school_closure(self, school_closure_blocks):
         """
@@ -137,45 +131,21 @@ class City:
             self.config = json.load(input_file)
 
         self.epi_rand = None
-        self.load_data(
-            setup_filename,
-            calendar_filename,
-            hospitalization_filename,
-            hosp_icu_filename,
-            hosp_admission_filename,
-            death_from_hosp_filename,
-            death_from_home_filename,
-            delta_prevalence_filename,
-            omicron_prevalence_filename,
-            variant_prevalence_filename,
-        )
-        self.process_data(transmission_filename)
 
-    def load_data(
-            self,
-            setup_filename,
-            calendar_filename,
-            hospitalization_filename,
-            hosp_icu_filename,
-            hosp_admission_filename,
-            death_from_hosp_filename,
-            death_from_home_filename,
-            delta_prevalence_filename,
-            omicron_prevalence_filename,
-            variant_prevalence_filename,
-    ):
-        """
-        Load setup file of the instance.
-        """
-        filename = str(self.path_to_data / setup_filename)
-        with open(filename, "r") as input_file:
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        #  Load data from setup_filename
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        with open(str(self.path_to_data / setup_filename), "r") as input_file:
             data = json.load(input_file)
             assert self.city == data["city"], "Data file does not match city."
 
+            # LP note: smooth this later -- not all of these attributes
+            #   are actually used and some of them are redundant
             for (k, v) in data.items():
                 setattr(self, k, v)
 
-            # Load demographics
+
+            # Load demographics information
             self.N = np.array(data["population"])
             self.I0 = np.array(data["IY_ini"])
 
@@ -183,8 +153,15 @@ class City:
             self.start_date = dt.datetime.strptime(
                 data["start_date"], datetime_formater
             )
-            self.end_date = dt.datetime.strptime(data["end_date"], datetime_formater)
-            # self.last_date_interventions = dt.datetime.strptime(data['last_date_interventions'], datetime_formater)
+
+            self.end_date = dt.datetime.strptime(
+                data["end_date"], datetime_formater)
+
+            # the school_closure_period attribute is a list (of lists) indicating
+            #   historical periods of school closure
+            # each element of the list is a 2-element list,
+            #   where the 1st element corresponds to the start date of school closure
+            #   and the 2nd element corresponds to the end date of school closure
             self.school_closure_period = []
             for blSc in range(len(data["school_closure"])):
                 self.school_closure_period.append(
@@ -198,101 +175,118 @@ class City:
                     ]
                 )
 
-            self.base_epi = EpiSetup(data["epi_params"], self.end_date)
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Set up base_epi
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        self.base_epi = EpiSetup(data["epi_params"], self.end_date)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Load hospitalization-related data
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        hosp_related_data_filenames = (hospitalization_filename,
+                                       hosp_icu_filename,
+                                       hosp_admission_filename,
+                                       death_from_hosp_filename,
+                                       death_from_home_filename)
+
+        real_history_hosp_related_data_vars = ("real_IH_history",
+                                               "real_ICU_history",
+                                               "real_ToIHT_history",
+                                               "real_ToICUD_history",
+                                               "real_ToIYD_history")
+
+        for i in range(len(hosp_related_data_filenames)):
+            filename = hosp_related_data_filenames[i]
+            var = real_history_hosp_related_data_vars[i]
+            if filename is not None:
+                setattr(self, var, self.read_hosp_related_data(filename))
+            else:
+                setattr(self, var, None)
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Load prevalence data
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        prevalence_filenames = (delta_prevalence_filename,
+                                omicron_prevalence_filename,
+                                variant_prevalence_filename)
+
+        prevalence_vars = ("delta_prev",
+                           "omicron_prev",
+                           "variant_prev")
+
+        prevalence_start_vars = ("delta_start",
+                                 "omicron_start",
+                                 "variant_start")
+
+        for i in range(len(prevalence_filenames)):
+            filename = prevalence_filenames[i]
+            df = pd.read_csv(
+                str(self.path_to_data / filename),
+                parse_dates=["date"],
+                date_parser=pd.to_datetime,
+            )
+            setattr(self, prevalence_vars[i], tuple(df["prev"]))
+            setattr(self, prevalence_start_vars[i], df["date"][0])
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Define dimension variables & others
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+        # Number of age and risk groups
+        self.A = len(self.N)
+        self.L = len(self.N[0])
+
+        # Maximum simulation length
+        self.T = 1 + (self.end_date - self.start_date).days
+
+        self.otherInfo = {}
+
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        # Load data from calendar_filename
+        # Build simulation calendar
+        # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
         cal_df = pd.read_csv(
             str(self.path_to_data / calendar_filename),
             parse_dates=["Date"],
             date_parser=pd.to_datetime,
         )
-        self.weekday_holidays = list(cal_df["Date"][cal_df["Calendar"] == 3])
-        self.weekday_longholidays = list(cal_df["Date"][cal_df["Calendar"] == 4])
+        self.weekday_holidays = tuple(cal_df["Date"][cal_df["Calendar"] == 3])
+        self.weekday_longholidays = tuple(cal_df["Date"][cal_df["Calendar"] == 4])
 
-        self.real_IH_history = (
-            self.read_hosp_related_data(hospitalization_filename)
-            if hospitalization_filename is not None
-            else None
-        )
-
-        self.real_ICU_history = (
-            self.read_hosp_related_data(hosp_icu_filename)
-            if hosp_icu_filename is not None
-            else None
-        )
-
-        self.real_ToIHT_history = (
-            self.read_hosp_related_data(hosp_admission_filename)
-            if hosp_admission_filename is not None
-            else None
-        )
-
-        self.real_ToICUD_history = (
-            self.read_hosp_related_data(death_from_hosp_filename)
-            if death_from_hosp_filename is not None
-            else None
-        )
-
-        self.real_ToIYD_history = (
-            self.read_hosp_related_data(death_from_home_filename)
-            if death_from_home_filename is not None
-            else None
-        )
-
-        df_delta = pd.read_csv(
-            str(self.path_to_data / delta_prevalence_filename),
-            parse_dates=["date"],
-            date_parser=pd.to_datetime,
-        )
-        self.delta_prev = list(df_delta["delta_prev"])
-        self.delta_start = df_delta["date"][0]
-
-        df_omicron = pd.read_csv(
-            str(self.path_to_data / omicron_prevalence_filename),
-            parse_dates=["date"],
-            date_parser=pd.to_datetime,
-        )
-        self.omicron_prev = list(df_omicron["prev"])
-        self.omicron_start = df_omicron["date"][0]
-
-        df_variant = pd.read_csv(
-            str(self.path_to_data / variant_prevalence_filename),
-            parse_dates=["date"],
-            date_parser=pd.to_datetime,
-        )
-        self.variant_prev = list(df_variant["prev"])
-        self.variant_start = df_variant["date"][0]
+        self.cal = self.build_calendar(transmission_filename)
 
     def read_hosp_related_data(self, hosp_filename):
+        '''
+        Helper function to read a hospitalization data file
+            and return an array with hospitalization counts.
+        '''
+
         df_hosp = pd.read_csv(
             str(self.path_to_data / hosp_filename),
             parse_dates=["date"],
             date_parser=pd.to_datetime,
         )
+
+        df_hosp = df_hosp[df_hosp["date"] <= self.end_date]
+
         # if hospitalization data starts before self.start_date
         if df_hosp["date"][0] <= self.start_date:
             df_hosp = df_hosp[df_hosp["date"] >= self.start_date]
-            df_hosp = df_hosp[df_hosp["date"] <= self.end_date]
             df_hosp = list(df_hosp["hospitalized"])
         else:
-            df_hosp = df_hosp[df_hosp["date"] <= self.end_date]
             df_hosp = [0] * (df_hosp["date"][0] - self.start_date).days + list(
                 df_hosp["hospitalized"]
             )
         return df_hosp
 
-    def process_data(self, transmission_filename):
+    def build_calendar(self, transmission_filename):
         """
         Compute couple parameters (i.e., parameters that depend on the input)
         and build the simulation calendar.
         """
 
-        # Dimension variables
-        self.A = len(self.N)
-        self.L = len(self.N[0])
-        self.T = 1 + (self.end_date - self.start_date).days
-        self.otherInfo = {}
-
-        cal = SimCalendar(self.start_date, self.T)
         try:
             df_transmission = pd.read_csv(
                 str(self.path_to_data / transmission_filename),
@@ -306,6 +300,7 @@ class City:
                     df_transmission["date"], df_transmission["transmission_reduction"]
                 )
             ]
+
             try:
                 cocooning = [
                     (d, co)
@@ -315,38 +310,29 @@ class City:
                 ]
             except:
                 cocooning = [(d, 0.0) for d in df_transmission["date"]]
-            lockdown_end = df_transmission["date"].iloc[-1]
-            cal.load_fixed_transmission_reduction(transmission_reduction)
-            cal.load_fixed_cocooning(cocooning)
-            for dfk in df_transmission.keys():
-                if (
-                        dfk != "date"
-                        and dfk != "transmission_reduction"
-                        and dfk != "cocooning"
-                ):
-                    self.otherInfo[dfk] = {}
-                    for (d, dfv) in zip(df_transmission["date"], df_transmission[dfk]):
-                        if d in cal.calendar_ix:
-                            d_ix = cal.calendar_ix[d]
-                            self.otherInfo[dfk][d_ix] = dfv
+
         except FileNotFoundError:
             # Initialize empty if no file available
-            cal.load_fixed_transmission_reduction([])
+            transmission_reduction = []
 
-        # School closures and school calendar
-        cal.load_school_closure(self.school_closure_period)
+        cal = SimCalendar(self.start_date, self.T,
+                          self.school_closure_period,
+                          transmission_reduction, cocooning,
+                          self.weekday_holidays, self.weekday_longholidays,
+                          self.real_IH_history)
 
-        # Holidays
-        try:
-            cal.load_holidays(self.weekday_holidays, self.weekday_longholidays)
-        except Exception:
-            print("No calendar was provided")
-
-        # Save real_hosp in calendar
-        cal.real_hosp = self.real_IH_history
-
-        # Save calendar
-        self.cal = cal
+        for dfk in df_transmission.keys():
+            if (
+                    dfk != "date"
+                    and dfk != "transmission_reduction"
+                    and dfk != "cocooning"
+            ):
+                self.otherInfo[dfk] = {}
+                for (d, dfv) in zip(df_transmission["date"], df_transmission[dfk]):
+                    if d in cal.calendar_ix:
+                        d_ix = cal.calendar_ix[d]
+                        self.otherInfo[dfk][d_ix] = dfv
+        return cal
 
 
 class TierInfo:
@@ -360,11 +346,6 @@ class TierInfo:
 class Vaccine:
     """
     Vaccine class to define epidemiological characteristics, supply and fixed allocation schedule of vaccine.
-    Parameters:
-        vaccine_data: (dict) dict of vaccine characteristics.
-        vaccine_allocation_data: (dict) contains vaccine schedule, supply and allocation data.
-        booster_allocation_data: (dict) contains booster schedule, supply and allocation data.
-        instance: data instance
     """
 
     def __init__(
@@ -373,8 +354,7 @@ class Vaccine:
             city,
             vaccine_filename,
             booster_filename,
-            vaccine_allocation_filename,
-    ):
+            vaccine_allocation_filename):
 
         self.path_to_data = base_path / "instances" / f"{city}"
 
@@ -404,10 +384,34 @@ class Vaccine:
         self.beta_reduct_delta = vaccine_data["beta_reduct_delta"]
         self.tau_reduct_delta = vaccine_data["tau_reduct_delta"]
         self.tau_reduct_omicron = vaccine_data["tau_reduct_omicron"]
-        self.instance = instance
 
-        self.vaccine_allocation = self.define_supply(
-            instance, vaccine_allocation_data, booster_allocation_data
+        self.actual_vaccine_time = [
+            time for time in vaccine_allocation_data["vaccine_time"]
+        ]
+        self.first_dose_time = [
+            time + dt.timedelta(days=self.effect_time)
+            for time in vaccine_allocation_data["vaccine_time"]
+        ]
+        self.second_dose_time = [
+            time + dt.timedelta(days=self.second_dose_time + self.effect_time)
+            for time in self.first_dose_time
+        ]
+        self.waning_time = [
+            time + dt.timedelta(days=self.waning_time)
+            for time in vaccine_allocation_data["vaccine_time"]
+        ]
+        self.vaccine_proportion = [
+            amount for amount in vaccine_allocation_data["vaccine_amount"]
+        ]
+        self.vaccine_start_time = np.where(
+            np.array(instance.cal.calendar) == self.actual_vaccine_time[0]
+        )[0]
+
+        self.vaccine_allocation = self.define_supply(vaccine_allocation_data,
+                                                     booster_allocation_data,
+                                                     instance.N,
+                                                     instance.A,
+                                                     instance.L
         )
         self.event_lookup_dict = self.build_event_lookup_dict()
 
@@ -456,7 +460,6 @@ class Vaccine:
             self, total_population, total_risk_gr, vaccine_group_name, v_in, v_out, date
     ):
         """
-
         :param total_population: integer, usually N parameter such as instance.N
         :param total_risk_gr: instance.A x instance.L
         :param vaccine_group_name: string of vaccine_group_name (see Vaccine.define_groups())
@@ -468,11 +471,11 @@ class Vaccine:
             (list is length A * L)
         """
 
-        # I don't know what dimension instance.N is, so need to check...
-
         N_in = np.zeros((total_risk_gr, 1))
         N_out = np.zeros((total_risk_gr, 1))
 
+        # LP note to self: could combine v_in and v_out as one function since
+        #   they essentially repeat themselves (one with N_in and one with N_out)
         for vaccine_type in v_in:
             event = self.event_lookup(vaccine_type, date)
             if event is not None:
@@ -528,58 +531,42 @@ class Vaccine:
 
         return N_eligible
 
-    def define_supply(self, instance, vaccine_allocation_data, booster_allocation_data):
-        """
+    def define_supply(self, vaccine_allocation_data, booster_allocation_data, N, A, L):
+        '''
         Load vaccine supply and allocation data, and process them.
-        Shift vaccine schedule for waiting vaccine to be effective, second dose and vaccine waning effect and also for booster dose.
-        """
-        N = instance.N
+        Shift vaccine schedule for waiting vaccine to be effective,
+            second dose and vaccine waning effect and also for booster dose.
+        '''
 
-        self.actual_vaccine_time = [
-            time for time in vaccine_allocation_data["vaccine_time"]
-        ]
-        self.first_dose_time = [
-            time + dt.timedelta(days=self.effect_time)
-            for time in vaccine_allocation_data["vaccine_time"]
-        ]
-        self.second_dose_time = [
-            time + dt.timedelta(days=self.second_dose_time + self.effect_time)
-            for time in self.first_dose_time
-        ]
-        self.waning_time = [
-            time + dt.timedelta(days=self.waning_time)
-            for time in vaccine_allocation_data["vaccine_time"]
-        ]
-        self.vaccine_proportion = [
-            amount for amount in vaccine_allocation_data["vaccine_amount"]
-        ]
-
-        self.vaccine_start_time = np.where(
-            np.array(instance.cal.calendar) == self.actual_vaccine_time[0]
-        )[0]
-        print(self.vaccine_start_time)
-
+        # Each of the following are lists
+        # Each element of the list is a dictionary with keys
+        #   "assignment", "proportion", "within_proportion", "supply"
         v_first_allocation = []
         v_second_allocation = []
         v_booster_allocation = []
         v_wane_allocation = []
 
+        # 10 of these age-risk groups (5 age groups, 2 risk groups)
         age_risk_columns = [
             column
             for column in vaccine_allocation_data.columns
             if "A" and "R" in column
         ]
 
+        # LP note to self: can also combine the following because
+        #   the logic is redundant for the different types of allocations
+
         # Fixed vaccine allocation:
         for i in range(len(vaccine_allocation_data["A1-R1"])):
             vac_assignment = np.array(
                 vaccine_allocation_data[age_risk_columns].iloc[i]
-            ).reshape((5, 2))
+            ).reshape((A, L))
+
 
             if np.sum(vac_assignment) > 0:
                 pro_round = vac_assignment / np.sum(vac_assignment)
             else:
-                pro_round = np.zeros((5, 2))
+                pro_round = np.zeros((A, L))
             within_proportion = vac_assignment / N
 
             # First dose vaccine allocation:
@@ -590,12 +577,8 @@ class Vaccine:
             }
             allocation_item = {
                 "assignment": vac_assignment,
-                "proportion": pro_round,
-                "within_proportion": within_proportion,
                 "supply": supply_first_dose,
-                "type": "first_dose",
-                "from": "v_0",
-                "to": "v_1",
+                "from": "v_0"
             }
             v_first_allocation.append(allocation_item)
 
@@ -608,12 +591,8 @@ class Vaccine:
                 }
                 allocation_item = {
                     "assignment": vac_assignment,
-                    "proportion": pro_round,
-                    "within_proportion": within_proportion,
                     "supply": supply_second_dose,
-                    "type": "second_dose",
-                    "from": "v_1",
-                    "to": "v_2",
+                    "from": "v_1"
                 }
                 v_second_allocation.append(allocation_item)
 
@@ -624,14 +603,11 @@ class Vaccine:
                     "amount": self.vaccine_proportion[i],
                     "type": "waning",
                 }
+
                 allocation_item = {
                     "assignment": vac_assignment,
-                    "proportion": pro_round,
-                    "within_proportion": within_proportion,
                     "supply": supply_waning,
-                    "type": "waning",
-                    "from": "v_2",
-                    "to": "v_3",
+                    "from": "v_2"
                 }
                 v_wane_allocation.append(allocation_item)
 
@@ -652,28 +628,28 @@ class Vaccine:
             for i in range(len(booster_allocation_data["A1-R1"])):
                 vac_assignment = np.array(
                     booster_allocation_data[age_risk_columns].iloc[i]
-                ).reshape((5, 2))
+
+                ).reshape((A, L))
+
 
                 if np.sum(vac_assignment) > 0:
                     pro_round = vac_assignment / np.sum(vac_assignment)
                 else:
-                    pro_round = np.zeros((5, 2))
+                    pro_round = np.zeros((A, L))
                 within_proportion = vac_assignment / N
 
                 # Booster dose vaccine allocation:
                 supply_booster_dose = {
                     "time": self.booster_time[i],
                     "amount": self.booster_proportion[i],
-                    "type": "booster_dose",
+                    "type": "booster_dose"
                 }
                 allocation_item = {
                     "assignment": vac_assignment,
                     "proportion": pro_round,
                     "within_proportion": within_proportion,
                     "supply": supply_booster_dose,
-                    "type": "booster_dose",
-                    "from": "v_3",
-                    "to": "v_2",
+                    "from": "v_3"
                 }
                 v_booster_allocation.append(allocation_item)
 
@@ -681,7 +657,7 @@ class Vaccine:
             "v_first": v_first_allocation,
             "v_second": v_second_allocation,
             "v_booster": v_booster_allocation,
-            "v_wane": v_wane_allocation,
+            "v_wane": v_wane_allocation
         }
 
 

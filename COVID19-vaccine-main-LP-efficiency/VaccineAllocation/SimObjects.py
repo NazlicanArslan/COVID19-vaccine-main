@@ -1,3 +1,9 @@
+###############################################################################
+
+# SimObjects.py
+
+###############################################################################
+
 import numpy as np
 
 datetime_formater = "%Y-%m-%d %H:%M:%S"
@@ -177,9 +183,7 @@ class MultiTierPolicy:
     def __call__(self, t, ToIHT, IH, ToIY, ICU):
         """
         Function that makes an instance of a policy a callable.
-        Args:
-            t (int): time period in the simulation
-            IH (ndarray): hospitalizations admissions, passed by the simulator
+
         """
         N = self._instance.N
 
@@ -251,23 +255,12 @@ class VaccineGroup:
         v_beta_reduct_delta,
         v_tau_reduct_delta,
         v_tau_reduct_omicron,
-        instance,
-    ):
-        """
+        N, I0, A, L, step_size):
+
+        '''
         Define each vaccine status as a group. Define each set of compartments for vaccine group.
+        '''
 
-        Parameters
-        ----------
-        v_name : string
-            vaccine status type.
-        v_beta_reduct : float [0,1]
-            reduction in transmission.
-        v_tau_reduct : float [0,1]
-            reduction in symptomatic infection.
-        instance :
-            problem instance.
-
-        """
         self.v_beta_reduct = v_beta_reduct
         self.v_tau_reduct = v_tau_reduct
         self.v_beta_reduct_delta = v_beta_reduct_delta
@@ -291,12 +284,8 @@ class VaccineGroup:
             self.v_in = ("v_wane",)
             self.v_out = ("v_booster",)
 
-        self.N = instance.N
-        self.I0 = instance.I0
-
-        A = instance.A
-        L = instance.L
-        step_size = instance.config["step_size"]
+        self.N = N
+        self.I0 = I0
 
         self.state_vars = ("S", "E", "IA", "IY", "PA", "PY", "R", "D", "IH", "ICU")
         self.tracking_vars = (

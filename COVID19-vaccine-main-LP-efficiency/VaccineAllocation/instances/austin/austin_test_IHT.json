@@ -1,14 +1,10 @@
 {
     "moving_avg_len": 7,
-    "grid_size": 50,
-    "safety_threshold_frac": 0.6,
     "step_size": 9,
     "chance_constraint_epsilon": 0.05,
-    "city": "austin",
     "infeasible_field": "ICU",
+    "city": "austin",
     "rd_start": "2020-05-20 00:00:00",
     "rd_end": "2020-07-26 00:00:00",
-    "rd_rate": 0.9907470746928597,
-    "num_training_reps": 300,
-    "num_testing_reps": 300
+    "rd_rate": 0.9907470746928597
 }

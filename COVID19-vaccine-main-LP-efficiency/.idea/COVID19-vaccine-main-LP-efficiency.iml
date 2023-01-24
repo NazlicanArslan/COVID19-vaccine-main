@@ -7,5 +7,6 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="COVID19-vaccine-main" />
+    <orderEntry type="module" module-name="Original Code from Nazlican" />
   </component>
 </module>

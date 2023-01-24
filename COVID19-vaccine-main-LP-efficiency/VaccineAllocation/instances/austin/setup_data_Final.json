@@ -6,7 +6,6 @@
   "hosp_beds": 1100,
   "icu": 150,
   "ventilators": 331,
-  "staffing_rule_safety": 4,
   "population": [
     [
       128527,
