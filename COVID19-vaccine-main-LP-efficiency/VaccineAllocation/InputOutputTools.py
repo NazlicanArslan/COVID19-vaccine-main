@@ -49,6 +49,7 @@ SimReplication_IO_var_names = (
     "IH_history",
     "ToIHT_history",
     "ToIY_history",
+    "S_history",
     "D_history",
     "ToICUD_history",
     "ToIYD_history",
@@ -79,6 +80,7 @@ SimReplication_IO_var_names = (
 # List of names of SimReplication attributes that are lists of arrays
 SimReplication_IO_list_of_arrays_var_names = (
     "ICU_history",
+    "S_history",
     "IH_history",
     "ToIHT_history",
     "ToIY_history",
@@ -141,7 +143,8 @@ plot_var_names = ["ICU_history",
                   "ToICUD_history",
                   "ToIYD_history",
                   "ToRS_history",
-                  "ToSS_history"]
+                  "ToSS_history",
+                  "S_history"]
 
 ###############################################################################
 

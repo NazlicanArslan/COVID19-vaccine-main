@@ -2,7 +2,7 @@
 "beta_reduct": {
   "first_dose": 0.8,
   "second_dose": 0.9,
-  "waned": 0.8
+  "waned": 0.7
 },
 "tau_reduct":{
   "first_dose": 0.95,

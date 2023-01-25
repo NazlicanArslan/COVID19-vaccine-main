@@ -65,7 +65,8 @@ class SimReplication:
                              "ToICUD",
                              "ToIYD",
                              "ToRS",
-                             "ToSS")
+                             "ToSS",
+                             "S")
 
         # Keep track of the total number of immune evasion:
         self.ToRS_immune = []  # waned natural immunity

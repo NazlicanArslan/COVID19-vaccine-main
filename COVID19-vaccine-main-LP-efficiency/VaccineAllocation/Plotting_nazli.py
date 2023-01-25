@@ -86,3 +86,8 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
             val = [np.cumsum(np.array(v), axis=0) for v in val]
             plot = Plot(instance, real_history_end_date, real_data, val, key)
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
+
+        elif key == "S_history":
+            real_data = None
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
