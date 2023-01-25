@@ -8,6 +8,7 @@ import numpy as np
 
 datetime_formater = "%Y-%m-%d %H:%M:%S"
 
+
 ###############################################################################
 # Common simple functions:
 
@@ -248,40 +249,36 @@ class MultiTierPolicy:
 
 class VaccineGroup:
     def __init__(
-        self,
-        v_name,
-        v_beta_reduct,
-        v_tau_reduct,
-        v_beta_reduct_delta,
-        v_tau_reduct_delta,
-        v_tau_reduct_omicron,
-        N, I0, A, L, step_size):
+            self,
+            v_name,
+            v_beta_reduct,
+            v_tau_reduct,
+            v_pi_reduct,
+            N, I0, A, L, step_size):
 
-        '''
+        """
         Define each vaccine status as a group. Define each set of compartments for vaccine group.
-        '''
+        """
 
         self.v_beta_reduct = v_beta_reduct
         self.v_tau_reduct = v_tau_reduct
-        self.v_beta_reduct_delta = v_beta_reduct_delta
-        self.v_tau_reduct_delta = v_tau_reduct_delta
-        self.v_tau_reduct_omicron = v_tau_reduct_omicron
+        self.v_pi_reduct = v_pi_reduct
         self.v_name = v_name
 
-        if self.v_name == "v_0":
+        if self.v_name == "unvax":
             self.v_in = ()
             self.v_out = ("v_first",)
 
-        elif self.v_name == "v_1":
+        elif self.v_name == "first_dose":
             self.v_in = ("v_first",)
             self.v_out = ("v_second",)
 
-        elif self.v_name == "v_2":
+        elif self.v_name == "second_dose":
             self.v_in = ("v_second", "v_booster")
-            self.v_out = ("v_wane",)
+            self.v_out = ()
 
         else:
-            self.v_in = ("v_wane",)
+            self.v_in = ()
             self.v_out = ("v_booster",)
 
         self.N = N
@@ -298,6 +295,9 @@ class VaccineGroup:
             "ToIYD",
             "ToIA",
             "ToIY",
+            "ToRS",
+            "ToSS",
+            "ToR"
         )
 
         for attribute in self.state_vars:
@@ -308,7 +308,7 @@ class VaccineGroup:
             setattr(self, attribute, np.zeros((A, L)))
             setattr(self, "_" + attribute, np.zeros((step_size, A, L)))
 
-        if self.v_name == "v_0":
+        if self.v_name == "unvax":
             # Initial Conditions (assumed)
             self.PY = self.I0
             self.R = 0
@@ -317,23 +317,22 @@ class VaccineGroup:
         for attribute in self.state_vars:
             vars(self)["_" + attribute][0] = getattr(self, attribute)
 
-    def delta_update(self, prev):
+    def variant_update(self, params, prev):
         """
-        Update efficacy according to delta variant (VoC) prevelance.
+        Update efficacy according to variant of concern efficacy
         """
+        self.v_beta_reduct = self.v_beta_reduct * (1 - prev) + params[
+            ('v_beta_reduct', self.v_name)]  # efficacy against infection.
+        self.v_tau_reduct = self.v_tau_reduct * (1 - prev) + params[
+            ('v_tau_reduct', self.v_name)]  # efficacy against symptomatic infection.
 
-        self.v_beta_reduct = (
-            self.v_beta_reduct * (1 - prev) + self.v_beta_reduct_delta * prev
-        )  # decreased efficacy against infection.
-        self.v_tau_reduct = (
-            self.v_tau_reduct * (1 - prev) + self.v_tau_reduct_delta * prev
-        )  # decreased efficacy against symptomatic infection.
-
-    def omicron_update(self, prev):
+    def get_total_population(self, total_risk_groups):
         """
-        Update efficacy according to omicron variant (VoC) prevelance.
+        :param total_risk_groups: total number of compartments for age-risk groups.
+        :return: the total population in a certain vaccine group (S+E+IY+PY+..).
         """
-
-        self.v_tau_reduct = (
-            self.v_tau_reduct * (1 - prev) + self.v_tau_reduct_omicron * prev
-        )
+        N = 0
+        for attribute in self.state_vars:
+            N += getattr(self, attribute)
+        N = N.reshape((total_risk_groups, 1))
+        return N

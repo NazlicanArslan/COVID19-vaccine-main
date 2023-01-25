@@ -13,22 +13,33 @@ compartment_names = {
     'D_history': 'Deaths',
     'R_history': 'Recovered',
     'ICU_history': 'COVID-19 ICU Patients',
+    'ToICUD_history': 'COVID-19 Fatality from ICU',
+    'ToIYD_history': 'COVID-19 Fatality from Home',
     'IH_history': 'COVID-19 Hospitalizations',
     'ToSS_unvax': 'Evasion of Vaccine Induced Immunity',
     'ToRS_unvax': 'Evasion of Natural Immunity',
     'R_history': 'Recovered',
-    'ToIY_history': 'COVID-19 New Symptomatic Cases per 100k\n(Seven-day Sum)'
+    'ToIY_history': 'COVID-19 New Symptomatic Cases per 100k\n(Seven-day Sum)',
+    'ToRS_history': 'COVID-19 Natural Infection Immunity Evasion',
+    'ToSS_history': 'COVID-19 Vaccine Induced Immunity Evasion',
+    'S_history': 'Susceptible to COVID-19'
 }
 y_lim = {'ToIHT_history': 150,
          'ToIHT_history_sum': 60,
          'IH_history_average': 1,
-         'D_history': 3000,
+         'D_history': 4000,
          'ICU_history': 300,
-         'IH_history': 500,
+         'ToICUD_history': 30,
+         'ToIYD_history': 30,
+         'IH_history': 600,
          'ToSS_unvax': 4000,
          'ToRS_unvax': 3000,
          'R_history': 500000,
-         'ToIY_history': 500}
+         'ToIY_history': 3000,
+         'ToRS_history': 300000,
+         'ToSS_history': 400000,
+         'S_history': 2500000
+         }
 
 plt.rcParams["font.size"] = "18"
 
@@ -155,10 +166,10 @@ class Plot:
         """
         # Axis ticks: write the name of the month on the x-axis:
         self.ax1.xaxis.set_ticks(
-            [t for t, d in enumerate(self.instance.cal.calendar) if (d.day == 1)])
+            [t for t, d in enumerate(self.instance.cal.calendar) if (d.day == 1 and d.month % 2 == 1)])
         self.ax1.xaxis.set_ticklabels(
             [f' {py_cal.month_abbr[d.month]} ' for t, d in enumerate(self.instance.cal.calendar) if
-             (d.day == 1)],
+             (d.day == 1 and d.month % 2 == 1)],
             rotation=0,
             fontsize=22)
 

@@ -23,8 +23,8 @@ austin = City(
     "austin_test_IHT.json",
     "calendar.csv",
     "setup_data_Final.json",
-    "variant.json",
-    "transmission.csv",
+    "variant_lsq.json",
+    "transmission_lsq_estimated_data.csv",
     "austin_real_hosp_updated.csv",
     "austin_real_icu_updated.csv",
     "austin_hosp_ad_updated.csv",
@@ -55,11 +55,15 @@ change_dates = [dt.date(2020, 2, 15),
                 dt.date(2021, 1, 12),
                 dt.date(2021, 3, 13),
                 dt.date(2021, 6, 20),
-                dt.date(2021, 7, 31),
-                dt.date(2021, 8, 22),
-                dt.date(2021, 9, 24),
-                dt.date(2021, 10, 25),
-                dt.date(2021, 12, 4)]
+                dt.date(2021, 7, 28),
+                dt.date(2021, 8, 10),
+                dt.date(2021, 9, 28),
+                dt.date(2021, 10, 12),
+                dt.date(2021, 11, 20),
+                dt.date(2022, 1, 6),
+                dt.date(2022, 2, 1),
+                dt.date(2022, 3, 6),
+                dt.date(2022, 3, 30)]
 
 # We don't fit all the transmission reduction values from scratch as the least square fit cannot handle too many
 # decision variables. We used the existing fitted values for the earlier fit data. In transmission_reduction and
@@ -74,11 +78,15 @@ transmission_reduction = [0.052257,
                           0.801538,
                           0.811144,
                           0.6849,
-                          0.5551535,
-                          None,
-                          None,
-                          None,
-                          None]
+                          0.539101,
+                          0.625945789,
+                          0.665369334,
+                          0.703965861,
+                          0.538824759,
+                          0.43,
+                          0.46,
+                          0.2,
+                          0.0]
 # for the high risk groups uses cocoon instead of contact reduction
 cocoon = np.array([0,
                    0.787752,
@@ -90,11 +98,15 @@ cocoon = np.array([0,
                    0.801538,
                    0.811144,
                    0.6849,
-                   0.5551535,
-                   None,
-                   None,
-                   None,
-                   None])
+                   0.539101,
+                   0.625945789,
+                   0.665369334,
+                   0.703965861,
+                   0.538824759,
+                   0.43,
+                   0.46,
+                   0.2,
+                   0.0])
 
 end_date = []
 for idx in range(len(change_dates[1:])):
@@ -107,9 +119,9 @@ table = pd.DataFrame(
     }
 )
 # The initial guess of the variables to estimate:
-initial_guess = np.array([0.073749, 0.296143, 1.80139, 0.003, 0.75, 0.85, 0.75, 0.75])
+initial_guess = np.array([3.5, 0.1, 3, 0.1])
 # Lower and upper bound tuple:
-x_bound = ([0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 10, 1, 1, 1, 1, 1])
+x_bound = ([0, 0, 0, 0], [5, 1, 5, 1])
 
 # Austin weights for the least-square fit:
 # You can input the data you would like to use in the process and corresponding weights. Different data have different
@@ -120,14 +132,17 @@ objective_weights = {"IH_history": 1,
                      "ToICUD_history": 7.583296 * 5,
                      "ToIYD_history": 7.583296 * 5}
 
+# objective_weights = {"ToIHT_history": 1}
+
 # We generally use the least square fit to find transmission reduction and cocooning in a population. But time to time
 # we may need to estimate other parameters. Fitting transmission reduction is optional. In the current version of
 # the parameter fitting you can input the name of parameter you would like to fit, and you don't need to change anything
 # else in the source code.
-variables = ["alpha1_delta", "alpha2_delta", "alpha3_delta", "alpha4_delta", "transmission_reduction"]
+variables = ["omicron alpha_gamma_ICU", "omicron alpha_IH", "omicron alpha_mu_ICU", "omicron alpha_IYD"]
+
 
 # We can define the time frame we would like to use data from as follows:
-time_frame = (austin.cal.calendar.index(dt.datetime(2021, 6, 20)), austin.cal.calendar.index(dt.datetime(2021, 12, 4)))
+time_frame = (austin.cal.calendar.index(dt.datetime(2021, 12, 4)), austin.cal.calendar.index(dt.datetime(2022, 3, 30)))
 
 param_fitting = ParameterFitting(austin,
                                  vaccines,

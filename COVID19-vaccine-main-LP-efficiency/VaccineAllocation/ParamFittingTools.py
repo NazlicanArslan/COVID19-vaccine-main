@@ -9,7 +9,9 @@ import numpy as np
 from scipy.optimize import least_squares
 import datetime as dt
 import pandas as pd
+import json
 
+variant_list = ["delta", "omicron"]
 
 class ParameterFitting:
     def __init__(self, city: object,
@@ -86,11 +88,14 @@ class ParameterFitting:
                         "cocoon": cocoon_reduc,
                     }
                 )
-                solution[var] = table
+                solution[var] = tr_reduc
                 print(table)
             else:
                 print(f"{var} = {x_variables[idx]}")
                 solution[var] = x_variables[idx]
+
+        with open(self.city.path_to_data / 'lsq_data.json', 'w') as f:
+            json.dump(solution, f)
         return solution
 
     def least_squares_fit(self):
@@ -125,6 +130,18 @@ class ParameterFitting:
                     (d, c) for (d, c) in zip(df_transmission["date"], df_transmission["cocooning"])
                 ]
                 self.city.cal.load_fixed_cocooning(cocooning)
+            elif var.split()[0] in variant_list:
+                if var.split()[1] == "start_date":
+                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
+                        "start_date"] = self.city.variant_start + dt.timedelta(days=int(x_variables[idx]))
+                elif var.split()[1] == "days":
+                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]]["days"] = int(
+                        x_variables[idx])
+                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
+                        "peak_date"] = self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
+                                           "start_date"] + dt.timedelta(days=int(x_variables[idx]))
+                else:
+                    self.city.variant_pool.variants_data['epi_params'][var.split()[1]][var.split()[0]] = x_variables[idx]
 
         # Simulate the system with the new variables:
         self.rep.simulate_time_period(self.time_frame[1])

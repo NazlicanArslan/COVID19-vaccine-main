@@ -63,7 +63,14 @@ class SimReplication:
                              "ToIHT",
                              "ToIY",
                              "ToICUD",
-                             "ToIYD")
+                             "ToIYD",
+                             "ToRS",
+                             "ToSS",
+                             "S")
+
+        # Keep track of the total number of immune evasion:
+        self.ToRS_immune = []  # waned natural immunity
+        self.ToSS_immune = []  # waned vaccine induced immunity
 
         for attribute in self.history_vars:
             setattr(self, f"{attribute}_history", [])
@@ -84,6 +91,8 @@ class SimReplication:
             "ToIYD",
             "ToIA",
             "ToIY",
+            "ToRS",
+            "ToSS"
         )
 
     def init_rng(self):
@@ -139,10 +148,10 @@ class SimReplication:
     def init_vaccine_groups(self):
         """
         Creates 4 vaccine groups:
-            group 0 / "v_0": unvaccinated
-            group 1 / "v_1": partially vaccinated
-            group 2 / "v_2": fully vaccinated
-            group 3 / "v_3": waning efficacy
+            group 0 / "unvax": unvaccinated
+            group 1 / "first_dose": partially vaccinated
+            group 2 / "second_dose": fully vaccinated
+            group 3 / "waned": waning efficacy
 
         We assume there is one type of vaccine with 2 doses.
         After 1 dose, individuals move from group 0 to 1.
@@ -161,22 +170,18 @@ class SimReplication:
         step_size = self.instance.config["step_size"]
 
         self.vaccine_groups = []
-        self.vaccine_groups.append(VaccineGroup("v_0", 0, 0, 0, 0, 0, N, I0, A, L, step_size))
-        self.vaccine_groups.append(
-            VaccineGroup("v_1", self.vaccine.beta_reduct[1], self.vaccine.tau_reduct[1],
-                         self.vaccine.beta_reduct_delta[1], self.vaccine.tau_reduct_delta[1],
-                         self.vaccine.tau_reduct_omicron[1], N, I0, A, L, step_size)
-        )
-        self.vaccine_groups.append(
-            VaccineGroup("v_2", self.vaccine.beta_reduct[2], self.vaccine.tau_reduct[2],
-                         self.vaccine.beta_reduct_delta[2], self.vaccine.tau_reduct_delta[2],
-                         self.vaccine.tau_reduct_omicron[2], N, I0, A, L, step_size)
-        )
-        self.vaccine_groups.append(
-            VaccineGroup("v_3", self.vaccine.beta_reduct[0], self.vaccine.tau_reduct[0],
-                         self.vaccine.beta_reduct_delta[0], self.vaccine.tau_reduct_delta[0],
-                         self.vaccine.tau_reduct_omicron[0], N, I0, A, L, step_size)
-        )
+
+        self.vaccine_groups.append(VaccineGroup("unvax", 0, 0, 0, N, I0, A, L, step_size))
+        for key in self.vaccine.beta_reduct:
+            self.vaccine_groups.append(
+                VaccineGroup(
+                    key,
+                    self.vaccine.beta_reduct[key],
+                    self.vaccine.tau_reduct[key],
+                    self.vaccine.pi_reduct[key],
+                    N, I0, A, L, step_size
+                )
+            )
         self.vaccine_groups = tuple(self.vaccine_groups)
 
     def compute_cost(self):
@@ -261,25 +266,6 @@ class SimReplication:
 
         return rsq
 
-    def immune_escape(self, immune_escape_rate, t):
-        """
-        This function moves recovered and vaccinated individuals to waning
-            efficacy susceptible compartment after Omicron becomes the prevalent
-            virus type.
-
-        :return: [None]
-        """
-
-        for v_groups in self.vaccine_groups:
-            moving_people = v_groups._R[self.step_size] * immune_escape_rate
-            v_groups.R -= moving_people
-            self.vaccine_groups[3].S += moving_people
-
-            if v_groups.v_name == "v_1" or v_groups.v_name == "v_2":
-                moving_people = v_groups._S[self.step_size] * immune_escape_rate
-                v_groups.S -= moving_people
-                self.vaccine_groups[3].S += moving_people
-
     def simulate_time_period(self, time_end):
 
         """
@@ -311,6 +297,9 @@ class SimReplication:
             for attribute in self.state_vars + self.tracking_vars:
                 sum_across_vaccine_groups = 0
                 for v_group in self.vaccine_groups:
+                    assert (getattr(v_group, attribute) > -1e-2).all(), \
+                        f"fPop negative value of {getattr(v_group, attribute)} " \
+                        f"on compartment {v_group.v_name}.{attribute} at time {self.instance.cal.calendar[t]}, {t}"
                     sum_across_vaccine_groups += getattr(v_group, attribute)
                 setattr(self, attribute, sum_across_vaccine_groups)
 
@@ -372,30 +361,19 @@ class SimReplication:
                 self.instance.cal._day_type[t],
             )
 
-        if calendar[t] >= self.instance.delta_start:
-            days_since_delta_start = (calendar[t] - self.instance.delta_start).days
-            for v_groups in self.vaccine_groups:
-                v_groups.delta_update(self.instance.delta_prev[days_since_delta_start])
-            epi.delta_update_param(self.instance.delta_prev[days_since_delta_start])
-
-        # Update epi parameters for omicron:
-        if calendar[t] >= self.instance.omicron_start:
-            days_since_omicron_start = (calendar[t] - self.instance.omicron_start).days
-            epi.omicron_update_param(
-                self.instance.omicron_prev[days_since_omicron_start]
-            )
-            for v_groups in self.vaccine_groups:
-                v_groups.omicron_update(
-                    self.instance.omicron_prev[days_since_omicron_start]
-                )
-
-        # Assume an imaginary new variant in May, 2022:
-        if epi.new_variant:
+        if calendar[t] >= self.instance.variant_start:
             days_since_variant_start = (calendar[t] - self.instance.variant_start).days
-            if calendar[t] >= self.instance.variant_start:
-                epi.variant_update_param(
-                    self.instance.variant_prev[days_since_variant_start]
-                )
+            new_epi_params_coef, new_vax_params, var_prev = self.instance.variant_pool.update_params_coef(
+                days_since_variant_start, epi.sigma_E)
+
+            # Assume immune evasion starts with the variants.
+            immune_evasion = self.instance.variant_pool.immune_evasion(epi.immune_evasion, calendar[t])
+            for v_groups in self.vaccine_groups:
+                if v_groups.v_name != 'unvax':
+                    v_groups.variant_update(new_vax_params, var_prev)
+            epi.variant_update_param(new_epi_params_coef)
+        else:
+            immune_evasion = 0
 
         if self.instance.otherInfo == {}:
             rd_start = dt.datetime.strptime(
@@ -416,59 +394,18 @@ class SimReplication:
         get_binomial_transition_quantity = self.get_binomial_transition_quantity
 
         rate_E = discrete_approx(epi.sigma_E, step_size)
-        rate_IYR = discrete_approx(
-            np.array(
-                [
-                    [
-                        (1 - epi.pi[a, l]) * epi.gamma_IY * (1 - epi.alpha4)
-                        for l in range(L)
-                    ]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
-        rate_IYD = discrete_approx(
-            np.array(
-                [
-                    [(1 - epi.pi[a, l]) * epi.gamma_IY * epi.alpha4 for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
+
 
         rate_IAR = discrete_approx(np.full((A, L), epi.gamma_IA), step_size)
         rate_PAIA = discrete_approx(np.full((A, L), epi.rho_A), step_size)
         rate_PYIY = discrete_approx(np.full((A, L), epi.rho_Y), step_size)
-
-        rate_IYH = discrete_approx(
-            np.array(
-                [
-                    [(epi.pi[a, l]) * epi.Eta[a] * epi.pIH for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
-        rate_IYICU = discrete_approx(
-            np.array(
-                [
-                    [(epi.pi[a, l]) * epi.Eta[a] * (1 - epi.pIH) for l in range(L)]
-                    for a in range(A)
-                ]
-            ),
-            step_size,
-        )
         rate_IHICU = discrete_approx(epi.nu * epi.etaICU, step_size)
         rate_IHR = discrete_approx((1 - epi.nu) * epi.gamma_IH, step_size)
         rate_ICUD = discrete_approx(epi.nu_ICU * epi.mu_ICU, step_size)
         rate_ICUR = discrete_approx((1 - epi.nu_ICU) * epi.gamma_ICU, step_size)
+        rate_immune = discrete_approx(immune_evasion, step_size)
 
         start = time.time()
-
-        if t >= 711:  # date corresponding to 02/07/2022
-            rate_immune = discrete_approx(epi.immune_evasion, step_size)
 
         for _t in range(step_size):
             # Dynamics for dS
@@ -494,20 +431,19 @@ class SimReplication:
                     dSprob = np.sum(temp3, axis=(2, 3))
                     dSprob_sum = dSprob_sum + dSprob
 
-                if (
-                        t >= 711 and v_groups.v_name == "v_2"
-                ):  # date corresponding to 02/07/2022
+                if v_groups.v_name in {"first_dose", "second_dose"}:
+                    # If there is immune evasion, there will be two outgoing arc from S_vax. Infected people will
+                    # move to E compartment. People with waned immunity will go the S_waned compartment.
+                    # _dS: total rate for leaving S compartment.
+                    # _dSE: adjusted rate for entering E compartment.
+                    # _dSR: adjusted rate for entering S_waned (self.vaccine_groups[3]._S) compartment.
                     _dS = get_binomial_transition_quantity(
                         v_groups._S[_t],
                         rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum,
                     )
-                    # Dynamics for E
-                    _dSE = (
-                            _dS
-                            * ((1 - v_groups.v_beta_reduct) * dSprob_sum)
-                            / (rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum)
-                    )
-
+                    # Avoid division by zero:
+                    _dSE = np.where(_dS == 0, 0, _dS * ((1 - v_groups.v_beta_reduct) * dSprob_sum) / (
+                                rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum))
                     E_out = get_binomial_transition_quantity(v_groups._E[_t], rate_E)
                     v_groups._E[_t + 1] = v_groups._E[_t] + _dSE - E_out
 
@@ -515,6 +451,7 @@ class SimReplication:
                     self.vaccine_groups[3]._S[_t + 1] = (
                             self.vaccine_groups[3]._S[_t + 1] + _dSR
                     )
+                    v_groups._ToSS[_t] = _dSR
 
                 else:
                     _dS = get_binomial_transition_quantity(
@@ -524,14 +461,11 @@ class SimReplication:
                     E_out = get_binomial_transition_quantity(v_groups._E[_t], rate_E)
                     v_groups._E[_t + 1] = v_groups._E[_t] + _dS - E_out
 
-                if t >= 711 and v_groups.v_name != "v_3":
-                    immune_escape_R = get_binomial_transition_quantity(
-                        v_groups._R[_t], rate_immune
-                    )
-                    self.vaccine_groups[3]._S[_t + 1] = (
-                            self.vaccine_groups[3]._S[_t + 1] + immune_escape_R
-                    )
+                    v_groups._ToSS[_t] = 0
 
+                immune_escape_R = get_binomial_transition_quantity(v_groups._R[_t], rate_immune)
+                self.vaccine_groups[3]._S[_t + 1] = self.vaccine_groups[3]._S[_t + 1] + immune_escape_R
+                v_groups._ToRS[_t] = immune_escape_R
                 v_groups._S[_t + 1] = v_groups._S[_t + 1] + v_groups._S[_t] - _dS
 
                 # Dynamics for PY
@@ -551,8 +485,49 @@ class SimReplication:
                 v_groups._IA[_t + 1] = v_groups._IA[_t] + PAIA - IAR
 
                 # Dynamics for IY
+                rate_IYR = discrete_approx(
+                    np.array(
+                        [
+                            [
+                                (1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * (1 - epi.alpha_IYD)
+                                for l in range(L)
+                            ]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+                rate_IYD = discrete_approx(
+                    np.array(
+                        [
+                            [(1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * epi.alpha_IYD for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
                 IYR = get_binomial_transition_quantity(v_groups._IY[_t], rate_IYR)
                 IYD = get_binomial_transition_quantity(v_groups._IY[_t] - IYR, rate_IYD)
+
+                rate_IYH = discrete_approx(
+                    np.array(
+                        [
+                            [(epi.pi[a, l]) * (1 - v_groups.v_pi_reduct) * epi.Eta[a] * epi.pIH for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+                rate_IYICU = discrete_approx(
+                    np.array(
+                        [
+                            [(epi.pi[a, l]) * (1 - v_groups.v_pi_reduct) * epi.Eta[a] * (1 - epi.pIH) for l in range(L)]
+                            for a in range(A)
+                        ]
+                    ),
+                    step_size,
+                )
+
                 v_groups._IYIH[_t] = get_binomial_transition_quantity(
                     v_groups._IY[_t] - IYR - IYD, rate_IYH
                 )
@@ -593,12 +568,7 @@ class SimReplication:
                 v_groups._ToIHT[_t] = v_groups._IYICU[_t] + v_groups._IYIH[_t]
 
                 # Dynamics for R
-                if t >= 711 and v_groups.v_name != "v_3":
-                    v_groups._R[_t + 1] = (
-                            v_groups._R[_t] + IHR + IYR + IAR + ICUR - immune_escape_R
-                    )
-                else:
-                    v_groups._R[_t + 1] = v_groups._R[_t] + IHR + IYR + IAR + ICUR
+                v_groups._R[_t + 1] = (v_groups._R[_t] + IHR + IYR + IAR + ICUR - immune_escape_R)
 
                 # Dynamics for D
                 v_groups._D[_t + 1] = v_groups._D[_t] + ICUD + IYD
@@ -623,125 +593,8 @@ class SimReplication:
                     v_groups, attribute, getattr(v_groups, "_" + attribute).sum(axis=0)
                 )
 
-        if calendar[t] == self.instance.omicron_start:
-            # Move almost half of the people from recovered to susceptible:
-            self.immune_escape(epi.immune_escape_rate, t)
-
         if t >= self.vaccine.vaccine_start_time:
-
-            S_before = np.zeros((5, 2))
-
-            for v_groups in self.vaccine_groups:
-                S_before += v_groups.S
-
-            for v_groups in self.vaccine_groups:
-
-                out_sum = np.zeros((A, L))
-                S_out = np.zeros((A * L, 1))
-                N_out = np.zeros((A * L, 1))
-
-                for vaccine_type in v_groups.v_out:
-                    event = self.vaccine.event_lookup(vaccine_type, calendar[t])
-
-                    if event is not None:
-
-                        S_out = np.reshape(
-                            self.vaccine.vaccine_allocation[vaccine_type][event][
-                                "assignment"
-                            ],
-                            (A * L, 1),
-                        )
-                        if calendar[t] >= self.instance.omicron_start:
-                            if v_groups.v_name == "v_1" or v_groups.v_name == "v_2":
-                                S_out = epi.immune_escape_rate * np.reshape(
-                                    self.vaccine.vaccine_allocation[vaccine_type][
-                                        event
-                                    ]["assignment"],
-                                    (A * L, 1),
-                                )
-
-                        N_out = self.vaccine.get_num_eligible(
-                            N,
-                            A * L,
-                            v_groups.v_name,
-                            v_groups.v_in,
-                            v_groups.v_out,
-                            calendar[t],
-                        )
-
-                        ratio_S_N = np.array(
-                            [
-                                0 if N_out[i] == 0 else float(S_out[i] / N_out[i])
-                                for i in range(len(N_out))
-                            ]
-                        ).reshape((A, L))
-
-                        out_sum += ratio_S_N * v_groups._S[step_size]
-
-                in_sum = np.zeros((A, L))
-                S_in = np.zeros((A * L, 1))
-                N_in = np.zeros((A * L, 1))
-
-                for vaccine_type in v_groups.v_in:
-
-                    for v_g in self.vaccine_groups:
-                        if (
-                                v_g.v_name
-                                == self.vaccine.vaccine_allocation[vaccine_type][0]["from"]
-                        ):
-                            v_temp = v_g
-
-                    event = self.vaccine.event_lookup(vaccine_type, calendar[t])
-
-                    if event is not None:
-                        S_in = np.reshape(
-                            self.vaccine.vaccine_allocation[vaccine_type][event][
-                                "assignment"
-                            ],
-                            (A * L, 1),
-                        )
-
-                        if calendar[t] >= self.instance.omicron_start:
-                            if (
-                                    v_groups.v_name == "v_3" and v_temp.v_name == "v_2"
-                            ) or (v_groups.v_name == "v_2" and v_temp.v_name == "v_1"):
-                                S_in = epi.immune_escape_rate * np.reshape(
-                                    self.vaccine.vaccine_allocation[vaccine_type][
-                                        event
-                                    ]["assignment"],
-                                    (A * L, 1),
-                                )
-
-                        N_in = self.vaccine.get_num_eligible(
-                            N,
-                            A * L,
-                            v_temp.v_name,
-                            v_temp.v_in,
-                            v_temp.v_out,
-                            calendar[t],
-                        )
-                        ratio_S_N = np.array(
-                            [
-                                0 if N_in[i] == 0 else float(S_in[i] / N_in[i])
-                                for i in range(len(N_in))
-                            ]
-                        ).reshape((A, L))
-
-                        in_sum += ratio_S_N * v_temp._S[step_size]
-
-                v_groups.S = v_groups.S + (np.array(in_sum - out_sum))
-
-                S_after = np.zeros((5, 2))
-
-            for v_groups in self.vaccine_groups:
-                S_after += v_groups.S
-
-            imbalance = np.abs(np.sum(S_before - S_after, axis=(0, 1)))
-
-            assert (imbalance < 1e-2).any(), (
-                f"fPop inbalance in vaccine flow in between compartment S "
-                f"{imbalance} at time {calendar[t]}, {t}"
-            )
+            self.vaccine_schedule(t, rate_immune)
 
         for v_groups in self.vaccine_groups:
 
@@ -751,6 +604,145 @@ class SimReplication:
 
             for attribute in self.tracking_vars:
                 setattr(v_groups, "_" + attribute, np.zeros((step_size, A, L)))
+
+    def vaccine_schedule(self, t_date, rate_immune):
+        """
+        Mechanically move people between compartments for daily vaccination at the end of a day. We only move people
+        between the susceptible compartments but assume that people may receive vaccine while they are already infected
+        of recovered (in that case we assume that the vaccine is wasted). For vaccine amount of X, we adjust
+        it by X * (S_v/N_v) where S_v is the total population in susceptible for vaccine status v and N_v is
+        the total eligible population (see Vaccine.get_num_eligible for more detail) for vaccination in
+        vaccine status v.
+            The vaccination assumption is slightly different for booster dose. People don't mechanically move to the
+        waned compartment, we draw binomial samples with a certain rate, but they get booster mechanically. That's why
+        the definition of total eligible population is different. We adjust the vaccine amount X as
+        X * (S_waned/(N_waned + N_fully_vax)) where N_waned and N_fully_wax is the total population in waned and
+        fully vax compartments (see VaccineGroup.get_total_population). We estimate the probability of being waned and
+        susceptible with S_waned/(N_waned + N_fully_vax).
+        :param t_date: the current day simulated.
+        :param rate_immune: immune evasion rate. Adjust the vaccine amount if there is immune evasion.
+        """
+        A = self.instance.A
+        L = self.instance.L
+        N = self.instance.N
+
+        calendar = self.instance.cal.calendar
+        t = t_date
+        S_before = np.zeros((5, 2))
+        S_temp = {}
+        N_temp = {}
+
+        for v_groups in self.vaccine_groups:
+            S_before += v_groups.S
+            S_temp[v_groups.v_name] = v_groups.S
+            N_temp[v_groups.v_name] = v_groups.get_total_population(A * L)
+
+        for v_groups in self.vaccine_groups:
+            out_sum = np.zeros((A, L))
+            S_out = np.zeros((A * L, 1))
+            N_out = np.zeros((A * L, 1))
+
+            for vaccine_type in v_groups.v_out:
+                event = self.vaccine.event_lookup(vaccine_type, calendar[t])
+
+                if event is not None:
+
+                    S_out = np.reshape(
+                        self.vaccine.vaccine_allocation[vaccine_type][event][
+                            "assignment"
+                        ],
+                        (A * L, 1),
+                    )
+                    if v_groups.v_name in "first_dose" and rate_immune > 0:
+                        S_out = rate_immune * np.reshape(
+                            self.vaccine.vaccine_allocation[vaccine_type][
+                                event
+                            ]["assignment"],
+                            (A * L, 1),
+                        )
+                    if v_groups.v_name == "waned":
+                        N_out = N_temp["waned"] + N_temp["second_dose"]
+                    else:
+                        N_out = self.vaccine.get_num_eligible(
+                            N,
+                            A * L,
+                            v_groups.v_name,
+                            v_groups.v_in,
+                            v_groups.v_out,
+                            calendar[t],
+                        )
+                    ratio_S_N = np.array(
+                        [
+                            0 if N_out[i] == 0 else float(S_out[i] / N_out[i])
+                            for i in range(len(N_out))
+                        ]
+                    ).reshape((A, L))
+
+                    out_sum += ratio_S_N * S_temp[v_groups.v_name]
+
+
+            in_sum = np.zeros((A, L))
+            S_in = np.zeros((A * L, 1))
+            N_in = np.zeros((A * L, 1))
+            for vaccine_type in v_groups.v_in:
+
+                for v_g in self.vaccine_groups:
+                    if (
+                            v_g.v_name
+                            == self.vaccine.vaccine_allocation[vaccine_type][0]["from"]
+                    ):
+                        v_temp = v_g
+
+                event = self.vaccine.event_lookup(vaccine_type, calendar[t])
+
+                if event is not None:
+                    S_in = np.reshape(
+                        self.vaccine.vaccine_allocation[vaccine_type][event][
+                            "assignment"
+                        ],
+                        (A * L, 1),
+                    )
+
+                    if v_groups.v_name == "second_dose" and v_temp.v_name == "first_dose" and rate_immune > 0:
+                        S_in = rate_immune * np.reshape(
+                            self.vaccine.vaccine_allocation[vaccine_type][
+                                event
+                            ]["assignment"],
+                            (A * L, 1),
+                        )
+                    if v_temp.v_name == "waned":
+                        N_in = N_temp["waned"] + N_temp["second_dose"]
+                    else:
+                        N_in = self.vaccine.get_num_eligible(
+                            N,
+                            A * L,
+                            v_temp.v_name,
+                            v_temp.v_in,
+                            v_temp.v_out,
+                            calendar[t],
+                        )
+
+                    ratio_S_N = np.array(
+                        [
+                            0 if N_in[i] == 0 else float(S_in[i] / N_in[i])
+                            for i in range(len(N_in))
+                        ]
+                    ).reshape((A, L))
+
+                    in_sum += ratio_S_N * S_temp[v_temp.v_name]
+
+            v_groups.S = v_groups.S + (np.array(in_sum - out_sum))
+            S_after = np.zeros((5, 2))
+
+        for v_groups in self.vaccine_groups:
+                S_after += v_groups.S
+
+        imbalance = np.abs(np.sum(S_before - S_after, axis=(0, 1)))
+
+        assert (imbalance < 1e-2).all(), (
+            f"fPop inbalance in vaccine flow in between compartment S "
+            f"{imbalance} at time {calendar[t]}, {t}"
+        )
 
     def reset(self):
 

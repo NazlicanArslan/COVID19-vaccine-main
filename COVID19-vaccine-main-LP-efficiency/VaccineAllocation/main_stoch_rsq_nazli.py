@@ -3,22 +3,21 @@ from DataObjects import City, TierInfo, Vaccine
 from OptTools import evaluate_single_policy_on_sample_path, get_sample_paths
 import datetime as dt
 import multiprocessing as mp
-from Plotting_nazli import plot_from_file
+from Plotting import plot_from_file
 
 austin = City(
     "austin",
     "austin_test_IHT.json",
     "calendar.csv",
     "setup_data_Final.json",
+    "variant.json",
     "transmission_May2020.csv",
     "austin_real_hosp_updated.csv",
     "austin_real_icu_updated.csv",
     "austin_hosp_ad_updated.csv",
     "austin_real_death_from_hosp_updated.csv",
     "austin_real_death_from_home.csv",
-    "delta_prevalence.csv",
-    "omicron_prevalence.csv",
-    "variant_prevalence.csv"
+    "variant_prevalence_no_omicron.csv"
 )
 
 tiers = TierInfo("austin", "tiers5_opt_Final.json")
