@@ -27,7 +27,7 @@
 import json
 import numpy as np
 import copy
-
+import datetime as dt
 ###############################################################################
 
 # Tuples containing names of attributes of SimReplication objects,
@@ -355,11 +355,12 @@ def export_rep_to_json(
         json.dump(d, open(random_params_filename, "w"))
 
 
-def import_stoch_reps_for_reporting(seeds: list, num_reps: int, instance: object):
+def import_stoch_reps_for_reporting(seeds: list, num_reps: int, history_end_date: dt.datetime, instance: object):
     """
     Import simulation results for each sample paths and combine them in a list.
     The resulting outputs used for plotting and calculating key statistics over all sample paths.
     seeds and num_reps are used to define the filename where the simulation results are stored.
+    :param history_end_date: the end date of the historical data.
     :param seeds: list of seeds used in simulation.
     :param num_reps: number of replication from each seeds.
     :param instance:
@@ -371,7 +372,7 @@ def import_stoch_reps_for_reporting(seeds: list, num_reps: int, instance: object
     policy_outputs = {}
     for i in seeds:
         for j in range(num_reps):
-            filename = f"{instance.path_to_input_output}/{i}_{j + 1}_sim_updated.json"
+            filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_sim_updated.json"
             with open(filename) as file:
                 data = json.load(file)
                 for var in plot_var_names:
@@ -381,7 +382,7 @@ def import_stoch_reps_for_reporting(seeds: list, num_reps: int, instance: object
                         print('The data is not outputted')
                         pass
 
-            policy_filename = f"{instance.path_to_input_output}/{i}_{j + 1}_policy.json"
+            policy_filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_policy.json"
             with open(policy_filename) as file:
                 policy_data = json.load(file)
                 for key, val in policy_data.items():

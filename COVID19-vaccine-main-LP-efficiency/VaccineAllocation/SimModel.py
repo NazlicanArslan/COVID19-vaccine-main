@@ -266,7 +266,7 @@ class SimReplication:
 
         return rsq
 
-    def simulate_time_period(self, time_end):
+    def simulate_time_period(self, time_end, fixed_kappa_end_date=None):
 
         """
         Advance the simulation model from time_start up to
@@ -276,17 +276,26 @@ class SimReplication:
             time_start and self.next_t, the last point at which it
             left off.
 
+        :param fixed_kappa_end_date: the end date for fixed transmission reduction (kappa). The staged-alert
+        policy will be called after this date. This is generally the end date of historical data, too.
+        Make sure the transmission.csv file has reduction values until and including fixed_kappa_end_date.
+            If fixed_kappa_end_date is None, the staged-alert policy will be called form the start of the
+            simulation date.
+
         :param time_end: [int] nonnegative integer -- time t (number of days)
             to simulate up to.
         :return: [None]
         """
 
         time_start = self.next_t
+        if fixed_kappa_end_date is None:
+            fixed_kappa_end_date = time_start - 1
+
         for t in range(time_start, time_end):
 
             self.next_t += 1
 
-            self.simulate_t(t)
+            self.simulate_t(t, fixed_kappa_end_date)
 
             A = self.instance.A
             L = self.instance.L
@@ -323,7 +332,7 @@ class SimReplication:
                     np.abs(total_imbalance) < 1e-2
             ), f"fPop unbalanced {total_imbalance} at time {self.instance.cal.calendar[t]}, {t}"
 
-    def simulate_t(self, t_date):
+    def simulate_t(self, t_date, fixed_kappa_end_date):
 
         A = self.instance.A
         L = self.instance.L
@@ -334,9 +343,8 @@ class SimReplication:
         t = t_date
 
         epi = copy.deepcopy(self.epi_rand)
-        if self.instance.cal.fixed_transmission_reduction[t] is not None:
-            # We can fix the transmission reduction as part of projections.
-            # It is better to keep real historical data separate from the tiers.
+        if t <= fixed_kappa_end_date:
+            # If the transmission reduction is fixed don't call the policy object.
             phi_t = epi.effective_phi(
                 self.instance.cal.schools_closed[t],
                 self.instance.cal.fixed_cocooning[t],
@@ -365,7 +373,6 @@ class SimReplication:
             days_since_variant_start = (calendar[t] - self.instance.variant_start).days
             new_epi_params_coef, new_vax_params, var_prev = self.instance.variant_pool.update_params_coef(
                 days_since_variant_start, epi.sigma_E)
-
             # Assume immune evasion starts with the variants.
             immune_evasion = self.instance.variant_pool.immune_evasion(epi.immune_evasion, calendar[t])
             for v_groups in self.vaccine_groups:
@@ -395,7 +402,6 @@ class SimReplication:
 
         rate_E = discrete_approx(epi.sigma_E, step_size)
 
-
         rate_IAR = discrete_approx(np.full((A, L), epi.gamma_IA), step_size)
         rate_PAIA = discrete_approx(np.full((A, L), epi.rho_A), step_size)
         rate_PYIY = discrete_approx(np.full((A, L), epi.rho_Y), step_size)
@@ -406,12 +412,10 @@ class SimReplication:
         rate_immune = discrete_approx(immune_evasion, step_size)
 
         start = time.time()
-
         for _t in range(step_size):
             # Dynamics for dS
 
             for v_groups in self.vaccine_groups:
-
                 dSprob_sum = np.zeros((5, 2))
 
                 for v_groups_temp in self.vaccine_groups:
@@ -437,22 +441,20 @@ class SimReplication:
                     # _dS: total rate for leaving S compartment.
                     # _dSE: adjusted rate for entering E compartment.
                     # _dSR: adjusted rate for entering S_waned (self.vaccine_groups[3]._S) compartment.
-                    _dS = get_binomial_transition_quantity(
+                    _dSE = get_binomial_transition_quantity(
                         v_groups._S[_t],
-                        rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum,
+                        (1 - v_groups.v_beta_reduct) * dSprob_sum,
                     )
-                    # Avoid division by zero:
-                    _dSE = np.where(_dS == 0, 0, _dS * ((1 - v_groups.v_beta_reduct) * dSprob_sum) / (
-                                rate_immune + (1 - v_groups.v_beta_reduct) * dSprob_sum))
+                    _dSR = get_binomial_transition_quantity(v_groups._S[_t], rate_immune)
+                    _dS = _dSR + _dSE
+
                     E_out = get_binomial_transition_quantity(v_groups._E[_t], rate_E)
                     v_groups._E[_t + 1] = v_groups._E[_t] + _dSE - E_out
 
-                    _dSR = _dS - _dSE
                     self.vaccine_groups[3]._S[_t + 1] = (
                             self.vaccine_groups[3]._S[_t + 1] + _dSR
                     )
                     v_groups._ToSS[_t] = _dSR
-
                 else:
                     _dS = get_binomial_transition_quantity(
                         v_groups._S[_t], (1 - v_groups.v_beta_reduct) * dSprob_sum

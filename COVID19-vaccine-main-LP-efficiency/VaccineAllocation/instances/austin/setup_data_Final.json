@@ -2,10 +2,8 @@
   "city": "austin",
   "start_date": "2020-02-28 00:00:00",
   "end_date": "2022-09-30 00:00:00",
-  "last_date_interventions": "2022-09-30 00:00:00",
   "hosp_beds": 1100,
   "icu": 150,
-  "ventilators": 331,
   "population": [
     [
       128527,
@@ -52,7 +50,6 @@
   ],
   "epi_params": {
     "case": 6,
-    "t_start":222,
     "rnd_stream": null,
     "beta0": 0.06901061034207119,
     "tau": 0.57,

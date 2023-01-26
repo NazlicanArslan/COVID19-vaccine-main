@@ -54,11 +54,11 @@ class Plot:
     """
 
     def __init__(self,
-                 instance,
+                 instance: object,
                  real_history_end_date,
-                 real_data,
-                 sim_data,
-                 var,
+                 real_data: list,
+                 sim_data: list,
+                 var: str,
                  central_path=0,
                  color=('teal', 'paleturquoise'),
                  text_size=28):

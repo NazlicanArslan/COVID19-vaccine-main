@@ -14,7 +14,7 @@ surge_colors = ['moccasin', 'pink']
 
 
 def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_thresholds):
-    sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, instance)
+    sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, real_history_end_date, instance)
     for key, val in sim_outputs.items():
         print(key)
         if hasattr(instance, f"real_{key}"):

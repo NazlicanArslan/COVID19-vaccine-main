@@ -20,6 +20,7 @@
 ###############################################################################
 
 import numpy as np
+import datetime as dt
 
 from SimObjects import MultiTierPolicy
 from DataObjects import City, TierInfo, Vaccine
@@ -112,6 +113,11 @@ def get_sample_paths(
     num_elim_per_stage = np.zeros(len(timepoints))
     all_rsq = []
 
+    # Take the last date on the timepoints as the last date of fixed transmission
+    # reduction. Make sure transmission.csv file has values up and including the last date
+    # in timepoints.
+    fixed_kappa_end_date = timepoints[-1]
+
     while num_good_reps < goal_num_good_reps:
         total_reps += 1
         valid = True
@@ -121,7 +127,7 @@ def get_sample_paths(
         #   sample paths early on
         rep_list = []
         for i in range(len(timepoints)):
-            rep.simulate_time_period(timepoints[i])
+            rep.simulate_time_period(timepoints[i], fixed_kappa_end_date)
             rsq = rep.compute_rsq()
             if rsq < rsq_cutoff:
                 num_elim_per_stage[i] += 1
@@ -383,6 +389,7 @@ def evaluate_single_policy_on_sample_path(city: object,
                                           vaccines: object,
                                           policy: object,
                                           end_time: int,
+                                          fixed_kappa_end_date: int,
                                           seed: int,
                                           num_reps: int,
                                           base_filename: str):
@@ -392,11 +399,11 @@ def evaluate_single_policy_on_sample_path(city: object,
     do projections or retrospective analysis with a single given staged-alert policy
     and creating data for plotting. This is not used for optimization.
     """
-
+    kappa_t_end = city.cal.calendar[fixed_kappa_end_date].date()
     # Iterate through each replication
     for rep in range(num_reps):
         # Load the sample path from .json files for each replication
-        base_json_filename = base_filename + str(rep + 1) + "_"
+        base_json_filename = base_filename + str(rep + 1) + "_" + str(kappa_t_end) + "_"
         base_rep = SimReplication(city, vaccines, None, 1)
         import_rep_from_json(base_rep, base_json_filename + "sim.json",
                              base_json_filename + "v0.json",
@@ -404,7 +411,7 @@ def evaluate_single_policy_on_sample_path(city: object,
                              base_json_filename + "v2.json",
                              base_json_filename + "v3.json",
                              None,
-                             base_json_filename + "epi_params.json")
+                             base_filename + str(rep + 1) + "_epi_params.json")
         if rep == 0:
             base_rep.rng = np.random.default_rng(seed)
         else:

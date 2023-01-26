@@ -50,8 +50,9 @@ seed = -1
 rep = SimReplication(austin, vaccines, ctp, seed)
 
 time_end = austin.cal.calendar.index(dt.datetime(2022, 5, 30))
-rep.simulate_time_period(time_end)
-base_filename = f"{austin.path_to_input_output}/{seed}_1"
+fixed_kappa_end_time = austin.cal.calendar.index(dt.datetime(2022, 3, 30))
+rep.simulate_time_period(time_end, fixed_kappa_end_time)
+base_filename = f"{austin.path_to_input_output}/{seed}_1_{dt.datetime(2022, 3, 30).date()}"
 export_rep_to_json(
     rep,
     f"{base_filename}_sim_updated.json",
@@ -61,26 +62,5 @@ export_rep_to_json(
     f"{base_filename}_v3.json",
     f"{base_filename}_policy.json"
 )
-
-# end_history = dt.datetime(2022, 4, 3)
-#
-# plot_from_file([-1],
-#                1,
-#                austin,
-#                end_history,
-#                equivalent_thresholds)
-
-#################################################################################################################
-# seed = 1
-# num_reps = 1
-# # time_points = [dt.datetime(2020, 4, 30)]
-# # time_points = [austin.cal.calendar.index(date) for date in time_points]
-# # get_sample_paths(austin, vaccines, 0.75, num_reps, seed, time_points)
-#
-# new_seed = 3
-# end_time = austin.cal.calendar.index(dt.datetime(2020, 8, 31))
-# base_filename = f"{austin.path_to_input_output}/{seed}_"
-# evaluate_single_policy_on_sample_path(austin, vaccines, ctp, end_time, new_seed, num_reps, base_filename)
-real_history_end_date = dt.datetime(2022, 3, 30)
-# equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
-plot_from_file([seed], 1, austin, real_history_end_date, equivalent_thresholds)
+fixed_kappa_end_time = dt.datetime(2022, 3, 30)
+plot_from_file([seed], 1, austin, fixed_kappa_end_time, equivalent_thresholds)
