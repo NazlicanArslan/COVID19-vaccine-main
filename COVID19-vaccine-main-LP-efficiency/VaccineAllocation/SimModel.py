@@ -302,13 +302,13 @@ class SimReplication:
 
             for attribute in self.state_vars + self.tracking_vars:
                 setattr(self, attribute, np.zeros((A, L)))
-
             for attribute in self.state_vars + self.tracking_vars:
                 sum_across_vaccine_groups = 0
                 for v_group in self.vaccine_groups:
                     assert (getattr(v_group, attribute) > -1e-2).all(), \
                         f"fPop negative value of {getattr(v_group, attribute)} " \
                         f"on compartment {v_group.v_name}.{attribute} at time {self.instance.cal.calendar[t]}, {t}"
+
                     sum_across_vaccine_groups += getattr(v_group, attribute)
                 setattr(self, attribute, sum_across_vaccine_groups)
 
@@ -435,7 +435,7 @@ class SimReplication:
                     dSprob = np.sum(temp3, axis=(2, 3))
                     dSprob_sum = dSprob_sum + dSprob
 
-                if v_groups.v_name in {"first_dose", "second_dose"}:
+                if v_groups.v_name in {"second_dose"}:
                     # If there is immune evasion, there will be two outgoing arc from S_vax. Infected people will
                     # move to E compartment. People with waned immunity will go the S_waned compartment.
                     # _dS: total rate for leaving S compartment.
@@ -648,20 +648,13 @@ class SimReplication:
                 event = self.vaccine.event_lookup(vaccine_type, calendar[t])
 
                 if event is not None:
-
                     S_out = np.reshape(
                         self.vaccine.vaccine_allocation[vaccine_type][event][
                             "assignment"
                         ],
                         (A * L, 1),
                     )
-                    if v_groups.v_name in "first_dose" and rate_immune > 0:
-                        S_out = rate_immune * np.reshape(
-                            self.vaccine.vaccine_allocation[vaccine_type][
-                                event
-                            ]["assignment"],
-                            (A * L, 1),
-                        )
+
                     if v_groups.v_name == "waned":
                         N_out = N_temp["waned"] + N_temp["second_dose"]
                     else:
@@ -680,14 +673,12 @@ class SimReplication:
                         ]
                     ).reshape((A, L))
 
-                    out_sum += ratio_S_N * S_temp[v_groups.v_name]
-
+                    out_sum += (ratio_S_N * S_temp[v_groups.v_name]).astype(int)
 
             in_sum = np.zeros((A, L))
             S_in = np.zeros((A * L, 1))
             N_in = np.zeros((A * L, 1))
             for vaccine_type in v_groups.v_in:
-
                 for v_g in self.vaccine_groups:
                     if (
                             v_g.v_name
@@ -705,13 +696,6 @@ class SimReplication:
                         (A * L, 1),
                     )
 
-                    if v_groups.v_name == "second_dose" and v_temp.v_name == "first_dose" and rate_immune > 0:
-                        S_in = rate_immune * np.reshape(
-                            self.vaccine.vaccine_allocation[vaccine_type][
-                                event
-                            ]["assignment"],
-                            (A * L, 1),
-                        )
                     if v_temp.v_name == "waned":
                         N_in = N_temp["waned"] + N_temp["second_dose"]
                     else:
@@ -731,7 +715,7 @@ class SimReplication:
                         ]
                     ).reshape((A, L))
 
-                    in_sum += ratio_S_N * S_temp[v_temp.v_name]
+                    in_sum += (ratio_S_N * S_temp[v_temp.v_name]).astype(int)
 
             v_groups.S = v_groups.S + (np.array(in_sum - out_sum))
             S_after = np.zeros((5, 2))

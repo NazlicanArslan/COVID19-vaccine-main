@@ -3,7 +3,7 @@
 "community_tranmission": null,
 "tiers": [
     {
-         "name": "Stage 1",
+        "name": "Stage 1",
         "transmission_reduction": 0,
         "cocooning": 0,
         "school_closure": 0,

@@ -49,7 +49,6 @@
     ]
   ],
   "epi_params": {
-    "case": 6,
     "rnd_stream": null,
     "beta0": 0.06901061034207119,
     "tau": 0.57,
