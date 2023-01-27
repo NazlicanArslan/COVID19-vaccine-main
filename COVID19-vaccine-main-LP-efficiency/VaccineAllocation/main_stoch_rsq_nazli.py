@@ -1,9 +1,11 @@
 from SimObjects import MultiTierPolicy, CDCTierPolicy
 from DataObjects import City, TierInfo, Vaccine
 from OptTools import evaluate_single_policy_on_sample_path, get_sample_paths
+from Plotting import plot_from_file
+
 import datetime as dt
 import multiprocessing as mp
-from Plotting import plot_from_file
+import numpy as np
 
 austin = City(
     "austin",
@@ -40,7 +42,7 @@ time_points = [dt.datetime(2020, 4, 30),
                ]
 time_points = [austin.cal.calendar.index(date) for date in time_points]
 time_end = dt.datetime(2022, 3, 30)
-seeds = [1]
+seeds = np.arange(100, 160, 2)
 num_reps = 1
 if __name__ == '__main__':
     for i in seeds:
