@@ -111,7 +111,6 @@ class SimCalendar:
             if dt_hd in self.calendar:
                 self._day_type[self.calendar_ix[dt_hd]] = LONG_HOLIDAY
 
-
 class City:
     def __init__(
             self,

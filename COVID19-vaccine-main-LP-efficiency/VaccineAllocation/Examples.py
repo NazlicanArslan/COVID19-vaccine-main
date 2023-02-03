@@ -73,7 +73,7 @@ austin = City("austin",
               "austin_real_icu_updated.csv",
               "austin_hosp_ad_updated.csv",
               "austin_real_death_from_hosp_updated.csv",
-              "austin_real_total_death.csv",
+              "austin_real_death_from_home.csv",
               "variant_prevalence.csv")
 
 tiers = TierInfo("austin", "tiers5_opt_Final.json")
@@ -192,6 +192,31 @@ rep.reset()
 #   testing (since being careful with random number
 #   generation is necessary for perfectly replicable
 #   results).
+
+# We also discuss the optional second parameter in
+#   the simulate_time_period method, which is fixed_kappa_end_date,
+#   a nonnegative integer. This value corresponds to the last day
+#   at which historical data are used for transmission reduction
+#   (and cocooning) parameters. By default, this value is 0,
+#   which means that no historical data is used for these
+#   parameters, and the parameter values from t = 1 onwards
+#   are dictated by the tiers in the MultiTierPolicy object
+#   attached to the simulation.
+# Note that the upper bound on fixed_kappa_end_date is the
+#   number of days of historical data available.
+# Also note that if a simulation replication is being run
+#   at timepoints t > fixed_kappa_end_date, there must be a
+#   MultiTierPolicy attached.
+# The optional second parameter is used for retrospective
+#   historical analysis and allows us to "play peek-a-boo"
+#   with historical data -- it allows us to incorporate a smaller
+#   subset of the historical data available rather than the
+#   entire set of historical data available.
+# Below is an example of running a simulation replication
+#   with historical transmission reduction for the first 100 days
+#   and then with simulated tier-dictated transmission reduction
+#   for
+rep.simulate_time_period(945, 100)
 
 ###############################################################################
 

@@ -195,14 +195,16 @@ class MultiTierPolicy:
             return
 
         ToIHT = np.array(ToIHT)
-        IH = np.array(IH)
         ToIY = np.array(ToIY)
-        ICU = np.array(ICU)
 
         # Compute daily admissions moving average
         moving_avg_start = np.maximum(0, t - self._instance.config["moving_avg_len"])
-        criStat_total = ToIHT.sum((1, 2))
-        criStat_avg = criStat_total[moving_avg_start:].mean()
+
+        if len(ToIHT) > 0:
+            criStat_total = ToIHT.sum((1, 2))
+            criStat_avg = criStat_total[moving_avg_start:].mean()
+        else:
+            criStat_avg = 0
 
         # Compute new cases per 100k:
         if len(ToIY) > 0:
@@ -213,8 +215,6 @@ class MultiTierPolicy:
             )
         else:
             ToIY_avg = 0
-
-        current_tier = self.tier_history[t - 1]
 
         # find new tier
         new_tier = find_tier(self.lockdown_thresholds, criStat_avg)
@@ -237,6 +237,11 @@ class MultiTierPolicy:
                         new_tier = 1
                     else:
                         new_tier = 2
+
+        if len(self.tier_history) > 0:
+            current_tier = self.tier_history[t - 1]
+        else:
+            current_tier = new_tier
 
         if current_tier != new_tier:  # bump to the next tier
             t_end = t + self.tiers[new_tier]["min_enforcing_time"]

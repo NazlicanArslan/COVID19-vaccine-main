@@ -268,7 +268,7 @@ class SimReplication:
 
         return rsq
 
-    def simulate_time_period(self, time_end, fixed_kappa_end_date=None):
+    def simulate_time_period(self, time_end, fixed_kappa_end_date=0):
 
         """
         Advance the simulation model from time_start up to
@@ -284,7 +284,7 @@ class SimReplication:
             reduction (kappa). The staged-alert policy will be called after
             this date. This is generally the end date of historical data, too.
             Make sure the transmission.csv file has reduction values until and
-            including fixed_kappa_end_date. If fixed_kappa_end_date is None,
+            including fixed_kappa_end_date. If fixed_kappa_end_date is 0,
             the staged-alert policy will be called from the start of the
             simulation date.
         :return: [None]
@@ -293,12 +293,10 @@ class SimReplication:
         # Begin where the simulation last left off
         time_start = self.next_t
 
-        # If fixed_kappa_end_date is None,
+        # If fixed_kappa_end_date is 0,
         #   then staged-alert policy dictates fixed transmission reduction
         #   (kappa),  even if historical transmission reduction data
         #   is available.
-        if fixed_kappa_end_date is None:
-            fixed_kappa_end_date = time_start - 1
 
         # Call simulate_t as subroutine from time_start to time_end
         for t in range(time_start, time_end):
@@ -436,7 +434,6 @@ class SimReplication:
         else:
             epi.update_icu_all(t, self.instance.otherInfo)
 
-        discrete_approx = discrete_approx
         step_size = self.step_size
         get_binomial_transition_quantity = self.get_binomial_transition_quantity
 
