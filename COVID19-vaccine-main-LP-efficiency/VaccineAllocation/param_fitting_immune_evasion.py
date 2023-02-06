@@ -65,6 +65,7 @@ change_dates = [dt.date(2020, 2, 15),
                 dt.date(2022, 3, 6),
                 dt.date(2022, 4, 1)]
 
+
 # We don't fit all the transmission reduction values from scratch as the least square fit cannot handle too many
 # decision variables. We used the existing fitted values for the earlier fit data. In transmission_reduction and
 # cocoon lists you can input the already existing values and for the new dates you need to estimate just input None.
@@ -88,6 +89,7 @@ transmission_reduction = [0.052257,
                           0.470303188,
                           0.0,
                           0.0]
+
 # for the high risk groups uses cocoon instead of contact reduction
 cocoon = np.array([0,
                    0.787752,
@@ -111,6 +113,7 @@ cocoon = np.array([0,
                    0.0])
 
 
+
 end_date = []
 for idx in range(len(change_dates[1:])):
     end_date.append(str(change_dates[1:][idx] - dt.timedelta(days=1)))
@@ -125,6 +128,7 @@ table = pd.DataFrame(
 initial_guess = np.array([3.5, 1, 2, 0.17])
 # Lower and upper bound tuple:
 x_bound = ([0, 0, 0, 0], [10, 10, 10, 1])
+
 
 # Austin weights for the least-square fit:
 # You can input the data you would like to use in the process and corresponding weights. Different data have different
@@ -141,10 +145,12 @@ objective_weights = {"IH_history": 1,
 # we may need to estimate other parameters. Fitting transmission reduction is optional. In the current version of
 # the parameter fitting you can input the name of parameter you would like to fit, and you don't need to change anything
 # else in the source code.
+
 variables = ["omicron alpha_gamma_ICU", "omicron alpha_IH", "omicron alpha_mu_ICU", "omicron alpha_IYD"]
 
 # We can define the time frame we would like to use data from as follows:
 time_frame = (austin.cal.calendar.index(dt.datetime(2021, 11, 25)), austin.cal.calendar.index(dt.datetime(2022, 4, 1)))
+
 
 param_fitting = ParameterFitting(austin,
                                  vaccines,

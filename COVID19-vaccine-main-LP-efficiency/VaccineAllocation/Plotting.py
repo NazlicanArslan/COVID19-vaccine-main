@@ -2,6 +2,7 @@ from pathlib import Path
 import pandas as pd
 import numpy as np
 from Plot_Manager import Plot, find_central_path
+
 from Report_Manager import Report
 from InputOutputTools import import_stoch_reps_for_reporting
 
@@ -15,10 +16,12 @@ surge_colors = ['moccasin', 'pink']
 
 def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_thresholds):
     sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, real_history_end_date, instance)
+
     central_path_id = find_central_path(sim_outputs["ICU_history"],
                                         sim_outputs["IH_history"],
                                         instance.real_IH_history,
                                         instance.cal.calendar.index(real_history_end_date))
+
     for key, val in sim_outputs.items():
         print(key)
         if hasattr(instance, f"real_{key}"):
@@ -53,6 +56,7 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
                                           tier_colors)
 
             plot = Plot(instance, real_history_end_date, real_data, val, f"{key}", central_path_id, color=('k', 'silver'))
+
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
         elif key == "ToIY_history":
@@ -79,6 +83,10 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
             plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id)
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
+        elif key == "S_history":
+            real_data = None
+            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
 def report_from_file(seeds, num_reps, instance, stats_start_date, stats_end_date):
     sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, instance)

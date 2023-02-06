@@ -111,7 +111,6 @@ class SimCalendar:
             if dt_hd in self.calendar:
                 self._day_type[self.calendar_ix[dt_hd]] = LONG_HOLIDAY
 
-
 class City:
     def __init__(
             self,
@@ -993,7 +992,6 @@ class VariantPool:
                 return (v["end_date"] - t).days * (v["immune_evasion_max"] - immune_evasion_base) / days + immune_evasion_base
 
         return immune_evasion_base
-        # return self.variants_prev['immune_evasion'][t]
 
 
 class ParamDistribution:

@@ -42,21 +42,23 @@ time_points = [dt.datetime(2020, 4, 30),
                ]
 time_points = [austin.cal.calendar.index(date) for date in time_points]
 time_end = dt.datetime(2022, 3, 30)
-seeds = np.arange(100, 160, 2)
-
+#seeds = np.arange(100, 160, 2)
+seeds = [2]
 num_reps = 1
+
 if __name__ == '__main__':
-    for i in seeds:
-        p = mp.Process(target=get_sample_paths, args=(austin, vaccines, 0.75, num_reps, i, time_points))
-        p.start()
-    for i in range(len(seeds)):
-        p.join()
+    # for i in seeds:
+    #     p = mp.Process(target=get_sample_paths, args=(austin, vaccines, 0.75, num_reps, i, time_points))
+    #     p.start()
+    # for i in range(len(seeds)):
+    #     p.join()
 
     # case_threshold = 200
     # hosp_adm_thresholds = {"non_surge": (-1, -1, 10, 20, 20), "surge": (-1, -1, -1, 10, 10)}
     # staffed_thresholds = {"non_surge": (-1, -1, 0.1, 0.15, 0.15), "surge": (-1, -1, -1, 0.1, 0.1)}
     # ctp = CDCTierPolicy(austin, tiers, case_threshold, hosp_adm_thresholds, staffed_thresholds)
-    # new_seeds = np.arange(200, 260, 2)
+    #
+    # new_seeds = [2]
     # end_time = austin.cal.calendar.index(dt.datetime(2022, 8, 1))
     # for i in range(len(seeds)):
     #     base_filename = f"{austin.path_to_input_output}/{seeds[i]}_"
@@ -66,6 +68,6 @@ if __name__ == '__main__':
     # for i in range(1):
     #     p.join()
 
-    # real_history_end_date = dt.datetime(2022, 3, 30)
-    # equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
-    # plot_from_file(seeds, num_reps, austin, real_history_end_date, equivalent_thresholds)
+    real_history_end_date = dt.datetime(2022, 3, 30)
+    equivalent_thresholds = {"non_surge": (-1, -1, 28.57, 57.14, 57.14), "surge": (-1, -1, -1, 28.57, 28.57)}
+    plot_from_file(seeds, num_reps, austin, real_history_end_date, equivalent_thresholds)

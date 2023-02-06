@@ -6,6 +6,7 @@ import calendar as py_cal
 import json
 
 base_path = Path(__file__).parent
+
 plt.rcParams["font.size"] = "18"
 
 ######################################################################################
