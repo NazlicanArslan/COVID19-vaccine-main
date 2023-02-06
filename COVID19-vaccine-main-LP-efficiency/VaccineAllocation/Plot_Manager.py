@@ -3,49 +3,27 @@ from pathlib import Path
 import numpy as np
 from datetime import datetime as dt
 import calendar as py_cal
+import json
 
 base_path = Path(__file__).parent
-######################################################################################
-compartment_names = {
-    'ToIHT_history': 'COVID-19 Hospital Admissions\n(Seven-day Average)',
-    'ToIHT_history_sum': 'COVID-19 Hospital Admissions per 100k\n(Seven-day Sum)',
-    'IH_history_average': 'Percent of Staffed Inpatient Beds\n(Seven-day Average)',
-    'D_history': 'Deaths',
-    'R_history': 'Recovered',
-    'ICU_history': 'COVID-19 ICU Patients',
-    'ToICUD_history': 'COVID-19 Fatality from ICU',
-    'ToIYD_history': 'COVID-19 Fatality from Home',
-    'IH_history': 'COVID-19 Hospitalizations',
-    'ToSS_unvax': 'Evasion of Vaccine Induced Immunity',
-    'ToRS_unvax': 'Evasion of Natural Immunity',
-    'R_history': 'Recovered',
-    'ToIY_history': 'COVID-19 New Symptomatic Cases per 100k\n(Seven-day Sum)',
-    'ToRS_history': 'COVID-19 Natural Infection Immunity Evasion',
-    'ToSS_history': 'COVID-19 Vaccine Induced Immunity Evasion',
-    'S_history': 'Susceptible to COVID-19'
-}
-y_lim = {'ToIHT_history': 150,
-         'ToIHT_history_sum': 60,
-         'IH_history_average': 1,
-         'D_history': 4000,
-         'ICU_history': 300,
-         'ToICUD_history': 30,
-         'ToIYD_history': 30,
-         'IH_history': 600,
-         'ToSS_unvax': 4000,
-         'ToRS_unvax': 3000,
-         'R_history': 500000,
-         'ToIY_history': 3000,
-         'ToRS_history': 300000,
-         'ToSS_history': 400000,
-         'S_history': 2500000
-         }
-
 plt.rcParams["font.size"] = "18"
-
 
 ######################################################################################
 # Plotting Module
+
+
+def find_central_path(sim_data_ICU, sim_data_IH, real_data, T_real):
+    real_data = real_data[: T_real]
+    num_rep = len(sim_data_ICU)
+    sim_data = [np.sum(sim_data_ICU[s], axis=(1, 2))[: T_real] + np.sum(sim_data_IH[s], axis=(1, 2))[: T_real]
+                for s in range(num_rep)
+                ]
+
+    rsq = [1 - np.sum(((np.array(sim) - np.array(real_data)) ** 2)) / sum(
+        (np.array(real_data) - np.mean(np.array(real_data))) ** 2
+    ) for sim in sim_data]
+    central_path_id = np.argmax(rsq)
+    return central_path_id
 
 
 class Plot:
@@ -66,13 +44,21 @@ class Plot:
         self.instance = instance
         self.real_history_end_date = real_history_end_date
         self.real_data = real_data
-        self.sim_data = [np.sum(s, axis=(1, 2)) for s in sim_data]
+        if var == "ToIY_history_sum":
+            self.sim_data = [np.sum(s, axis=(1, 2)) * 0.4 for s in sim_data]
+        else:
+            self.sim_data = [np.sum(s, axis=(1, 2)) for s in sim_data]
         self.var = var
         self.central_path = central_path
         self.T = len(np.sum(sim_data[0], axis=(1, 2)))
         self.T_real = (real_history_end_date - instance.start_date).days
-        self.y_lim = y_lim
         self.text_size = text_size
+
+        with open(str(base_path / "instances" / f"{instance.city}" / "plot_info.json"), "r") as input_file:
+            data = json.load(input_file)
+            self.y_lim = data["y_lim"]
+            self.compartment_names = data["compartment_names"]
+
         self.base_plot(color)
 
     def base_plot(self, color):
@@ -86,9 +72,9 @@ class Plot:
                                                              gridspec_kw={'height_ratios': [10, 1.1]})
         self.policy_ax = self.ax1.twinx()
 
-        if 'Seven-day Average' in compartment_names[self.var]:
+        if 'Seven-day Average' in self.compartment_names[self.var]:
             self.moving_avg()
-        elif 'Seven-day Sum' in compartment_names[self.var]:
+        elif 'Seven-day Sum' in self.compartment_names[self.var]:
             self.moving_sum()
 
         if self.real_data is not None:
@@ -99,13 +85,13 @@ class Plot:
         self.ax1.plot(range(self.T), self.sim_data[self.central_path], color[0])
 
         # plot a vertical line to separate history from projections:
-        self.ax1.vlines(self.T_real, 0, y_lim[self.var], colors='k', linewidth=3)
+        self.ax1.vlines(self.T_real, 0, self.y_lim[self.var], colors='k', linewidth=3)
 
         # Plot styling:
         # Axis limits:
-        self.ax1.set_ylim(0, y_lim[self.var])
-        self.policy_ax.set_ylim(0, y_lim[self.var])
-        self.ax1.set_ylabel(compartment_names[self.var])
+        self.ax1.set_ylim(0, self.y_lim[self.var])
+        self.policy_ax.set_ylim(0, self.y_lim[self.var])
+        self.ax1.set_ylabel(self.compartment_names[self.var])
         self.actions_ax.set_xlim(0, self.T)
         self.set_x_axis()
         # Order of layers
@@ -117,7 +103,7 @@ class Plot:
         self.policy_ax.margins(0)
 
         # Axis ticks.
-        if "Percent" in compartment_names[self.var]:
+        if "Percent" in self.compartment_names[self.var]:
             self.ax1.yaxis.set_ticks(np.arange(0, 1.001, 0.2))
             self.ax1.yaxis.set_ticklabels(
                 [f' {np.round(t * 100)}%' for t in np.arange(0, 1.001, 0.2)],
@@ -231,7 +217,7 @@ class Plot:
             u_color = tier_colors[id_tr]
             u_alpha = 0.6
             u_lb = tr
-            u_ub = thresholds[id_tr + 1] if id_tr + 1 < len(thresholds) else y_lim[self.var]
+            u_ub = thresholds[id_tr + 1] if id_tr + 1 < len(thresholds) else self.y_lim[self.var]
             if u_lb >= -1 and u_ub >= 0:
                 self.policy_ax.fill_between(range(self.T_real, self.T + 1),
                                             u_lb,
@@ -258,7 +244,7 @@ class Plot:
                 u_color = tier_colors[id_tr]
                 u_alpha = 0.6
                 u_lb = tr
-                u_ub = thresholds[state][id_tr + 1] if id_tr + 1 < len(thresholds[state]) else y_lim[self.var]
+                u_ub = thresholds[state][id_tr + 1] if id_tr + 1 < len(thresholds[state]) else self.y_lim[self.var]
                 if u_lb >= -1 and u_ub >= 0:
                     self.policy_ax.fill_between(range(self.T_real, self.T),
                                                 u_lb,
@@ -290,7 +276,7 @@ class Plot:
             fill = [True if fill[i] or fill[i - 1] else False for i in range(len(fill))]
             self.policy_ax.fill_between(range(self.T_real, self.T),
                                         0,
-                                        y_lim[self.var],
+                                        self.y_lim[self.var],
                                         where=fill,
                                         color=u_color,
                                         alpha=u_alpha,
@@ -306,7 +292,7 @@ class Plot:
         """
         bottom_tier = 0
         for u in range(len(tier_colors)):
-            color_fill = (sum(np.array(t[self.T_real:self.T]) == u for t in tier_history) / len(tier_history)) * y_lim[self.var]
+            color_fill = (sum(np.array(t[self.T_real:self.T]) == u for t in tier_history) / len(tier_history)) * self.y_lim[self.var]
             self.policy_ax.bar(range(self.T_real, self.T),
                                color_fill,
                                color=tier_colors[u],
@@ -316,3 +302,4 @@ class Plot:
                                linewidth=0)
             bottom_tier += np.array(color_fill)
         self.save_plot()
+

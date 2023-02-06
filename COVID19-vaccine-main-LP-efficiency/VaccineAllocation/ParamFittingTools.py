@@ -132,15 +132,9 @@ class ParameterFitting:
                 ]
                 self.city.cal.load_fixed_cocooning(cocooning)
             elif var.split()[0] in variant_list:
-                if var.split()[1] == "start_date":
+                if var.split()[1] in {"start_date", "end_date", "peak_date"}:
                     self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
-                        "start_date"] = self.city.variant_start + dt.timedelta(days=int(x_variables[idx]))
-                elif var.split()[1] == "days":
-                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]]["days"] = int(
-                        x_variables[idx])
-                    self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
-                        "peak_date"] = self.city.variant_pool.variants_data['epi_params']["immune_evasion"][var.split()[0]][
-                                           "start_date"] + dt.timedelta(days=int(x_variables[idx]))
+                        var.split()[1]] = self.city.variant_start + dt.timedelta(days=int(x_variables[idx]))
                 else:
                     self.city.variant_pool.variants_data['epi_params'][var.split()[1]][var.split()[0]] = x_variables[idx]
 

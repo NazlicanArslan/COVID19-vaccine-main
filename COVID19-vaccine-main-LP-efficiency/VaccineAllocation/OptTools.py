@@ -28,6 +28,7 @@ from SimModel import SimReplication
 from InputOutputTools import import_rep_from_json, export_rep_to_json
 import copy
 import itertools
+import json
 
 
 ###############################################################################
@@ -112,12 +113,11 @@ def get_sample_paths(
     #   even those eliminated due to low R-squared values
     num_elim_per_stage = np.zeros(len(timepoints))
     all_rsq = []
-
+    valid_rsq = {}
     # Take the last date on the timepoints as the last date of fixed transmission
     # reduction. Make sure transmission.csv file has values up and including the last date
     # in timepoints.
     fixed_kappa_end_date = timepoints[-1]
-
     while num_good_reps < goal_num_good_reps:
         total_reps += 1
         valid = True
@@ -146,6 +146,7 @@ def get_sample_paths(
             num_good_reps += 1
             all_rsq.append(rsq)
             identifier = str(processor_rank) + "_" + str(num_good_reps)
+            valid_rsq[identifier] = rsq
             # save the state of the rep for each time block as seperate files.
             # Each file will be used for retrospective analysis of different peaks.
             # Each peak will have different end dates of historical data.
@@ -187,7 +188,7 @@ def get_sample_paths(
             np.savetxt(
                 str(processor_rank) + "_all_rsq.csv", np.array(all_rsq), delimiter=","
             )
-
+    json.dump(valid_rsq, open(str(processor_rank) + "_valid_rsq.json", "w"))
 
 ###############################################################################
 

@@ -185,3 +185,4 @@ class Report:
         plt.subplots_adjust(hspace=0)
         plt.savefig(plot_filename)
         return plot_filename
+

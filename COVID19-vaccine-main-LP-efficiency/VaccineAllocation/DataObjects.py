@@ -932,7 +932,7 @@ class VariantPool:
             v["immune_evasion_max"] = log(2) / (v["half_life"] * 30) if v["half_life"] != 0 else 0
             v["start_date"] = dt.datetime.strptime(v["start_date"], datetime_formater)
             v["peak_date"] = dt.datetime.strptime(v["peak_date"], datetime_formater)
-            v['days'] = (v["peak_date"] - v["start_date"]).days
+            v["end_date"] = dt.datetime.strptime(v["end_date"], datetime_formater)
 
     def update_params_coef(self, t: int, sigma_E: float):
         """
@@ -986,9 +986,11 @@ class VariantPool:
         """
         for (k, v) in self.variants_data['epi_params']["immune_evasion"].items():
             if v["start_date"] <= t <= v["peak_date"]:
-                return (t - v["start_date"]).days * (v["immune_evasion_max"] - immune_evasion_base) / v["days"] + immune_evasion_base
-            elif v["peak_date"] <= t <= v["peak_date"] + dt.timedelta(days=v["days"]):
-                return (v["peak_date"] + dt.timedelta(days=v["days"]) - t).days * (v["immune_evasion_max"] - immune_evasion_base) / v["days"] + immune_evasion_base
+                days = (v["peak_date"] - v["start_date"]).days
+                return (t - v["start_date"]).days * (v["immune_evasion_max"] - immune_evasion_base) / days + immune_evasion_base
+            elif v["peak_date"] <= t <= v["end_date"]:
+                days = (v["end_date"] - v["peak_date"]).days
+                return (v["end_date"] - t).days * (v["immune_evasion_max"] - immune_evasion_base) / days + immune_evasion_base
 
         return immune_evasion_base
         # return self.variants_prev['immune_evasion'][t]

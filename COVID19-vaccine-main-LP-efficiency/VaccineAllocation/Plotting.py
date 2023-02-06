@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-from Plot_Manager import Plot
+from Plot_Manager import Plot, find_central_path
 from Report_Manager import Report
 from InputOutputTools import import_stoch_reps_for_reporting
 
@@ -15,6 +15,10 @@ surge_colors = ['moccasin', 'pink']
 
 def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_thresholds):
     sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, real_history_end_date, instance)
+    central_path_id = find_central_path(sim_outputs["ICU_history"],
+                                        sim_outputs["IH_history"],
+                                        instance.real_IH_history,
+                                        instance.cal.calendar.index(real_history_end_date))
     for key, val in sim_outputs.items():
         print(key)
         if hasattr(instance, f"real_{key}"):
@@ -23,17 +27,17 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
             real_data = None
 
         if key == "ICU_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id)
             plot.dali_plot(policy_outputs["tier_history"], tier_colors)
 
         elif key == "ToIHT_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key, color=('k', 'silver'))
+            plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id, color=('k', 'silver'))
             plot.changing_horizontal_plot(policy_outputs["surge_history"],
                                           ["non_surge", "surge"],
                                           equivalent_thresholds,
                                           tier_colors)
 
-            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}_sum", color=('k', 'silver'))
+            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}_sum", central_path_id, color=('k', 'silver'))
             plot.changing_horizontal_plot(policy_outputs["surge_history"],
                                           ["non_surge", "surge"],
                                           policy_outputs["hosp_adm_thresholds"][0],
@@ -42,13 +46,13 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
             real_data = [
                 ai - bi for (ai, bi) in zip(instance.real_IH_history, instance.real_ICU_history)
             ]
-            plot = Plot(instance,  real_history_end_date, real_data, val, f"{key}_average", color=('k', 'silver'))
+            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}_average", central_path_id,  color=('k', 'silver'))
             plot.changing_horizontal_plot(policy_outputs["surge_history"],
                                           ["non_surge", "surge"],
                                           policy_outputs["staffed_bed_thresholds"][0],
                                           tier_colors)
 
-            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}", color=('k', 'silver'))
+            plot = Plot(instance, real_history_end_date, real_data, val, f"{key}", central_path_id, color=('k', 'silver'))
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
         elif key == "ToIY_history":
@@ -59,39 +63,22 @@ def plot_from_file(seeds, num_reps, instance, real_history_end_date, equivalent_
                 parse_dates=["date"],
                 date_parser=pd.to_datetime,
             )["admits"]
-
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            # real_data = np.array(real_data) * 1.92
+            plot = Plot(instance, real_history_end_date, real_data, val, "ToIY_history_sum", central_path_id)
             plot.vertical_plot(policy_outputs["surge_history"], surge_colors)
 
         elif key == "D_history":
-            real_data = np.cumsum(np.array([ai + bi for (ai, bi) in zip(instance.real_ToIYD_history, instance.real_ToICUD_history)]))
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            real_data = np.cumsum(
+                np.array([ai + bi for (ai, bi) in zip(instance.real_ToIYD_history, instance.real_ToICUD_history)]))
+            plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id)
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
         elif key == "ToIYD_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id)
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
         elif key == "ToICUD_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
-        elif key == "ToRS_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
+            plot = Plot(instance, real_history_end_date, real_data, val, key, central_path_id)
             plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
-            val = [np.cumsum(np.array(v), axis=0) for v in val]
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
-        elif key == "ToSS_history":
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
-
-            val = [np.cumsum(np.array(v), axis=0) for v in val]
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
-
-        elif key == "S_history":
-            real_data = None
-            plot = Plot(instance, real_history_end_date, real_data, val, key)
-            plot.vertical_plot(policy_outputs["tier_history"], tier_colors)
 
 def report_from_file(seeds, num_reps, instance, stats_start_date, stats_end_date):
     sim_outputs, policy_outputs = import_stoch_reps_for_reporting(seeds, num_reps, instance)
