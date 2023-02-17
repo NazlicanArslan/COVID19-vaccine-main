@@ -21,6 +21,7 @@ import time
 def discrete_approx(rate, timestep):
     return 1 - np.exp(-rate / timestep)
 
+
 class SimReplication:
     def __init__(self, instance, vaccine, policy, rng_seed):
         """
@@ -268,7 +269,6 @@ class SimReplication:
 
         return rsq
 
-
     def simulate_time_period(self, time_end, fixed_kappa_end_date=0):
 
         """
@@ -370,8 +370,7 @@ class SimReplication:
 
     def simulate_t(self, t_date, fixed_kappa_end_date):
 
-
-        '''
+        """
         Advance the simulation 1 timepoint (day).
 
         Subroutine called in simulate_time_period
@@ -380,7 +379,7 @@ class SimReplication:
             current timepoint to simulate.
         :param fixed_kappa_end_date: see simulate_time_period
         :return: [None]
-        '''
+        """
 
         # Get dimensions (number of age groups,
         #   number of risk groups,
@@ -460,7 +459,6 @@ class SimReplication:
         rate_ICUD = discrete_approx(epi.nu_ICU * epi.mu_ICU, step_size)
         rate_ICUR = discrete_approx((1 - epi.nu_ICU) * epi.gamma_ICU, step_size)
         rate_immune = discrete_approx(immune_evasion, step_size)
-
 
         for _t in range(step_size):
             # Dynamics for dS
@@ -552,7 +550,8 @@ class SimReplication:
                 rate_IYD = discrete_approx(
                     np.array(
                         [
-                            [(1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * epi.alpha_IYD for l in range(L)]
+                            [(1 - epi.pi[a, l] * (1 - v_groups.v_pi_reduct)) * epi.gamma_IY * epi.alpha_IYD for l in
+                             range(L)]
                             for a in range(A)
                         ]
                     ),
@@ -769,7 +768,7 @@ class SimReplication:
             S_after = np.zeros((5, 2))
 
         for v_groups in self.vaccine_groups:
-                S_after += v_groups.S
+            S_after += v_groups.S
 
         imbalance = np.abs(np.sum(S_before - S_after, axis=(0, 1)))
 

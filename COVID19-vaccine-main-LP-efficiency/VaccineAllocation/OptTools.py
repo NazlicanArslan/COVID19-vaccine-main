@@ -403,7 +403,7 @@ def evaluate_single_policy_on_sample_path(city: object,
     # Iterate through each replication
     for rep in range(num_reps):
         # Load the sample path from .json files for each replication
-        base_json_filename = base_filename + str(rep + 1) + "_" + str(kappa_t_end) + "_"
+        base_json_filename = str(city.path_to_input_output) + "/base_files/" + base_filename + str(rep + 1) + "_" + str(kappa_t_end) + "_"
         base_rep = SimReplication(city, vaccines, None, 1)
         import_rep_from_json(base_rep, base_json_filename + "sim.json",
                              base_json_filename + "v0.json",
@@ -411,27 +411,29 @@ def evaluate_single_policy_on_sample_path(city: object,
                              base_json_filename + "v2.json",
                              base_json_filename + "v3.json",
                              None,
-                             base_filename + str(rep + 1) + "_epi_params.json")
+                             str(city.path_to_input_output) + "/base_files/" + base_filename + str(rep + 1) + "_epi_params.json")
         if rep == 0:
             base_rep.rng = np.random.default_rng(seed)
         else:
             base_rep.rng = next_rng
 
         base_rep.policy = policy
-
         base_rep.simulate_time_period(end_time)
+        breakpoint()
         # Internally save the state of the random number generator
         #   to hand to the next sample path
         next_rng = base_rep.rng
         # Save results
+        base_json_filename = str(city.path_to_input_output) + "/" + base_filename + str(rep + 1) + "_" + str(
+            kappa_t_end) + "_"
         export_rep_to_json(
             base_rep,
-            base_json_filename + "sim_updated.json",
-            base_json_filename + "v0_scratch.json",
-            base_json_filename + "v1_scratch.json",
-            base_json_filename + "v2_scratch.json",
-            base_json_filename + "v3_scratch.json",
-            base_json_filename + "policy.json"
+            base_json_filename + str(policy) + "_sim_updated.json",
+            base_json_filename + str(policy) + "_v0_scratch.json",
+            base_json_filename + str(policy) + "_v1_scratch.json",
+            base_json_filename + str(policy) + "_v2_scratch.json",
+            base_json_filename + str(policy) + "_v3_scratch.json",
+            base_json_filename + str(policy) + "_policy.json"
         )
 
         # Clear the policy and simulation replication history

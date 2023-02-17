@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
-
+import datetime as dt
 base_path = Path(__file__).parent
 
 percentiles = [5, 50, 95, 99, 100]
@@ -18,7 +18,7 @@ class Report:
                  instance,
                  sim_data,
                  policy_data,
-                 stats_start_date=None,
+                 history_end_date=None,
                  stats_end_date=None,
                  central_path=0,
                  template_file="report_template.tex"):
@@ -29,9 +29,9 @@ class Report:
         self.central_path = central_path
         self.path_to_report = base_path / "reports"
         self.template_file = f"{self.path_to_report}/{template_file}"
-        self.stats_start_date = stats_start_date
+        self.stats_start_date = history_end_date
         self.stats_end_date = stats_end_date
-        self.T_start = instance.cal.calendar.index(stats_start_date)
+        self.T_start = instance.cal.calendar.index(self.stats_start_date)
         self.T_end = instance.cal.calendar.index(stats_end_date)
         self.report_data = {}
         self.cap_list = {'IHT': [self.instance.hosp_beds], "ICU": [350, 300, 250, 200, 150]}
@@ -135,12 +135,12 @@ class Report:
             os.system(f"mkdir {self.path_to_report}")
 
         self.fill_template(self.template_file, tex_file)
-        os.system(f"pdflatex {tex_file}")  # Run the latex file to generate pdf.
-        os.system(f"mv {pdf_file} {self.path_to_report}")  # move the pdf file to the correct directory for reports.
-
-        # Delete the extra files:
-        os.remove(f'report_{instance_name}_{self.trigger_summary()}_{self.stats_start_date.date()}.aux')
-        os.remove(f'report_{instance_name}_{self.trigger_summary()}_{self.stats_start_date.date()}.log')
+        # os.system(f"pdflatex {tex_file}")  # Run the latex file to generate pdf.
+        # os.system(f"mv {pdf_file} {self.path_to_report}")  # move the pdf file to the correct directory for reports.
+        #
+        # # Delete the extra files:
+        # os.remove(f'report_{instance_name}_{self.trigger_summary()}_{self.stats_start_date.date()}.aux')
+        # os.remove(f'report_{instance_name}_{self.trigger_summary()}_{self.stats_start_date.date()}.log')
 
     def fill_template(self, template_file, report_file):
         """
@@ -165,9 +165,9 @@ class Report:
         Create the name of the report according to the stage alert system that is used.
         """
         if "case_threshold" in self.policy_data.keys():
-            return f"CDC-{self.policy_data['case_threshold']}"
+            return f"CDC-{self.policy_data['case_threshold'][-1]}"
         else:
-            return f"Staged Alert-{self.policy_data['lockdown_thresholds']}"
+            return f"Staged Alert-{self.policy_data['lockdown_thresholds'][-1]}"
 
     def plot_tier_bar(self, tier_hist_list: list):
         """

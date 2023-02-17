@@ -111,8 +111,6 @@ class Plot:
                 rotation=0,
                 fontsize=22)
 
-        self.save_plot()
-
     def moving_avg(self):
         """
         Take the 7-day moving average of the data we are plotting.
@@ -124,12 +122,13 @@ class Plot:
         else:
             percent = 1
         n_day = self.instance.config["moving_avg_len"]
-        self.sim_data = [[s[i: min(i + n_day, self.T)].mean() / percent for i in
+        temp = self.sim_data.copy()
+        self.sim_data = [[s[max(0, i - n_day): i].mean() / percent if i > 0 else 0 for i in
                           range(self.T)] for s in self.sim_data]
 
         if self.real_data is not None:
             real_data = np.array(self.real_data)
-            self.real_data = [real_data[0:self.T_real][i: min(i + n_day, self.T_real)].mean() / percent for
+            self.real_data = [real_data[0:self.T_real][max(0, i - n_day): i].mean() / percent if i > 0 else 0 for
                               i in range(self.T_real)]
 
     def moving_sum(self):
@@ -139,13 +138,13 @@ class Plot:
         """
         n_day = self.instance.config["moving_avg_len"]
         total_population = np.sum(self.instance.N, axis=(0, 1))
-        self.sim_data = [[s[i: min(i + n_day, self.T)].sum() * 100000 / total_population
-                          for i in range(self.T)] for s in self.sim_data]
+        self.sim_data = [[s[max(0, i - n_day): i].sum() * 100000 / total_population
+                          if i > 0 else 0 for i in range(self.T)] for s in self.sim_data]
 
         if self.real_data is not None:
             real_data = np.array(self.real_data[0:self.T_real])
-            self.real_data = [real_data[i: min(i + n_day, self.T_real)].sum() * 100000 / total_population
-                              for i in range(self.T_real)]
+            self.real_data = [real_data[max(0, i - n_day): i].sum() * 100000 / total_population
+                              if i > 0 else 0 for i in range(self.T_real)]
 
     def set_x_axis(self):
         """
@@ -153,10 +152,10 @@ class Plot:
         """
         # Axis ticks: write the name of the month on the x-axis:
         self.ax1.xaxis.set_ticks(
-            [t for t, d in enumerate(self.instance.cal.calendar) if (d.day == 1 and d.month % 2 == 1)])
+            [t for t, d in enumerate(self.instance.cal.calendar) if (d.day == 1 or d.day == 15)]) # and d.month % 2 == 1
         self.ax1.xaxis.set_ticklabels(
             [f' {py_cal.month_abbr[d.month]} ' for t, d in enumerate(self.instance.cal.calendar) if
-             (d.day == 1 and d.month % 2 == 1)],
+             (d.day == 1 or d.day == 15)],  # and d.month % 2 == 1
             rotation=0,
             fontsize=22)
 
@@ -228,7 +227,7 @@ class Plot:
                                             linewidth=0.0,
                                             step='pre')
 
-        self.save_plot()
+        self.save_plot("horizontal")
 
     def changing_horizontal_plot(self, surge_history, surge_states, thresholds, tier_colors):
         """
@@ -256,12 +255,12 @@ class Plot:
                                                 where=fill,
                                                 step='pre')
 
-        self.save_plot()
+        self.save_plot("changing_horizontal")
 
-    def save_plot(self):
-        plt.savefig(self.path_to_plot / f"{self.var}.png")
+    def save_plot(self, plot_type):
+        plt.savefig(self.path_to_plot / f"{self.var}_{plot_type}.png")
 
-    def vertical_plot(self, tier_history, tier_colors):
+    def vertical_plot(self, tier_history, tier_colors, cap_limit=0):
         """
         Plot the historical policy vertically with corresponding policy colors.
         The historical policy can correspond to the five tiers or to the surge tiers in the CDC system.
@@ -282,9 +281,11 @@ class Plot:
                                         color=u_color,
                                         alpha=u_alpha,
                                         linewidth=0)
-        self.save_plot()
 
-    def dali_plot(self, tier_history, tier_colors):
+            self.ax1.hlines(cap_limit, 0, self.T, colors='k', linewidth=3)
+        self.save_plot("vertical")
+
+    def dali_plot(self, tier_history, tier_colors, cap_limit=0):
         """
         Plot the tier history colors. Different sample paths may be in different stages during the same time period.
         color the background to tier color according the percent of paths in that particular tier during a particular
@@ -302,5 +303,6 @@ class Plot:
                                alpha=0.6,
                                linewidth=0)
             bottom_tier += np.array(color_fill)
-        self.save_plot()
+        self.ax1.hlines(cap_limit, 0, self.T, colors='k', linewidth=3)
+        self.save_plot("dali")
 

@@ -340,7 +340,7 @@ def export_rep_to_json(
 
     # Export sim_rep.policy variables
     if multi_tier_policy_filename is not None:
-        d = {}
+        d = {"policy_type": f"{sim_rep.policy}"}
         for k in MultiTierPolicy_IO_var_names:
             if hasattr(sim_rep.policy, k):
                 d[k] = getattr(sim_rep.policy, k)
@@ -355,7 +355,7 @@ def export_rep_to_json(
         json.dump(d, open(random_params_filename, "w"))
 
 
-def import_stoch_reps_for_reporting(seeds: list, num_reps: int, history_end_date: dt.datetime, instance: object):
+def import_stoch_reps_for_reporting(seeds: list, num_reps: int, history_end_date: dt.datetime, instance: object, policy_name:str):
     """
     Import simulation results for each sample paths and combine them in a list.
     The resulting outputs used for plotting and calculating key statistics over all sample paths.
@@ -372,7 +372,7 @@ def import_stoch_reps_for_reporting(seeds: list, num_reps: int, history_end_date
     policy_outputs = {}
     for i in seeds:
         for j in range(num_reps):
-            filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_sim_updated.json"
+            filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_{policy_name}_sim_updated.json"
             with open(filename) as file:
                 data = json.load(file)
                 for var in plot_var_names:
@@ -382,7 +382,7 @@ def import_stoch_reps_for_reporting(seeds: list, num_reps: int, history_end_date
                         print('The data is not outputted')
                         pass
 
-            policy_filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_policy.json"
+            policy_filename = f"{instance.path_to_input_output}/{i}_{j + 1}_{history_end_date.date()}_{policy_name}_policy.json"
             with open(policy_filename) as file:
                 policy_data = json.load(file)
                 for key, val in policy_data.items():

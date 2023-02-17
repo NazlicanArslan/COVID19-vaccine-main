@@ -57,7 +57,8 @@ class CDCTierPolicy:
                  tiers,
                  case_threshold,
                  hosp_adm_thresholds,
-                 staffed_bed_thresholds):
+                 staffed_bed_thresholds,
+                 percentage_cases=0.4):
         """
         :param instance:
         :param tiers: (list of dict): a list of the tiers characterized by a dictionary
@@ -73,12 +74,16 @@ class CDCTierPolicy:
                     surge : thresholds level when case counts is above the case threshold
                    }
         :param staffed_bed_thresholds: (dict of dict) similar entries as the hosp_adm_thresholds.
+        :param percentage_cases: the CDC system uses total case counts as an indicators. However, we don't have a direct
+        interpretation of case counts in the model. We estimate the real total case count as some percentage of people
+        entering symptomatic compartment (ToIY). We use percentage_case to adjust ToIY.
         """
         self._instance = instance
         self.tiers = tiers.tier
         self.case_threshold = case_threshold
         self.hosp_adm_thresholds = hosp_adm_thresholds
         self.staffed_bed_thresholds = staffed_bed_thresholds
+        self.percentage_cases = percentage_cases
         self.tier_history = None
         self.surge_history = None
 
@@ -103,10 +108,10 @@ class CDCTierPolicy:
         ToIY = np.array(ToIY)
         ICU = np.array(ICU)
 
-        # Compute daily admissions moving average
+        # Compute daily admissions moving sum
         moving_avg_start = np.maximum(0, t - self._instance.config["moving_avg_len"])
         hos_adm_total = ToIHT.sum((1, 2))
-        hosp_adm_avg = hos_adm_total[moving_avg_start:].mean()
+        hosp_adm_sum = 100000 * hos_adm_total[moving_avg_start:].sum() / N.sum((0, 1))
 
         # Compute 7-day total new cases:
         N = self._instance.N
@@ -119,8 +124,9 @@ class CDCTierPolicy:
 
         current_tier = self.tier_history[t - 1]
 
-        # Decide on the active hospital admission and staffed bed thresholds depending on the case count level:
-        if ToIY_total < self.case_threshold:
+        # Decide on the active hospital admission and staffed bed thresholds depending on the estimated
+        # case count level:
+        if ToIY_total * self.percentage_cases < self.case_threshold:
             hosp_adm_thresholds = self.hosp_adm_thresholds["non_surge"]
             staffed_bed_thresholds = self.staffed_bed_thresholds["non_surge"]
             surge_state = 0
@@ -130,7 +136,7 @@ class CDCTierPolicy:
             surge_state = 1
 
         # find hosp admission new tier:
-        hosp_adm_tier = find_tier(hosp_adm_thresholds, hosp_adm_avg)
+        hosp_adm_tier = find_tier(hosp_adm_thresholds, hosp_adm_sum)
 
         # find staffed bed new tier:
         staffed_bed_tier = find_tier(staffed_bed_thresholds, IH_avg)
@@ -215,7 +221,6 @@ class MultiTierPolicy:
             )
         else:
             ToIY_avg = 0
-
         # find new tier
         new_tier = find_tier(self.lockdown_thresholds, criStat_avg)
 
